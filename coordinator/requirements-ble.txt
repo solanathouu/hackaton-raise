@@ -1,0 +1,2 @@
+# Capteur BLE (scripts/ble-density.py). Install : pip install -r requirements-ble.txt
+bleak>=0.22.0

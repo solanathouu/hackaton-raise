@@ -25,6 +25,7 @@
     .zone .h { font-size:20px; font-weight:700; }
     .zone.ok { border-left:3px solid var(--ok); } .zone.sur { border-left:3px solid var(--accent); } .zone.bad { border-left:3px solid var(--bad); }
     .zone .sk { font-size:10px; color:var(--warn); }
+    .zone .ble { font-size:10px; color:var(--accent); margin-top:4px; }
     .ptt { width:100%; padding:22px; font-size:18px; font-weight:700; border-radius:14px; background:var(--bad); border:none; color:#fff; user-select:none; }
     .ptt.rec { background:#7d1a15; animation:pulse 1s infinite; }
     @keyframes pulse { 50% { opacity:.6; } }
@@ -99,22 +100,41 @@
     const socket = io();
     let me = localStorage.getItem('me') || 'A7';
     let lang = 'fr';
+    let lastState = null;
+    const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
+
+    function renderZones(st) {
+      if (!st?.zones) return;
+      $('#zones').innerHTML = st.zones.map(z => {
+        const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
+        const ble = crowdByZone[z.id];
+        const bleHtml = ble
+          ? `<div class="ble">📡 ${ble.deviceCount} BT${ble.ratio ? ` ×${ble.ratio}` : ''}</div>`
+          : '';
+        return `<div class="zone ${cls}"><div class="n">${z.name}</div><div class="h">${z.headcount}<span style="font-size:12px;color:var(--dim)">/${z.required_min}</span></div>${z.required_skills.length?`<div class="sk">${z.required_skills.join(',')}</div>`:''}${bleHtml}</div>`;
+      }).join('');
+    }
 
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
 
     // --- state / zones ---
     socket.on('state', (st) => {
+      lastState = st;
       const who = $('#who');
       if (who.options.length !== st.agents.length) {
         who.innerHTML = st.agents.map(a => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve?' (R)':''}</option>`).join('');
         who.value = me;
       }
-      $('#zones').innerHTML = st.zones.map(z => {
-        const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
-        return `<div class="zone ${cls}"><div class="n">${z.name}</div><div class="h">${z.headcount}<span style="font-size:12px;color:var(--dim)">/${z.required_min}</span></div>${z.required_skills.length?`<div class="sk">${z.required_skills.join(',')}</div>`:''}</div>`;
-      }).join('');
+      renderZones(st);
+    });
+
+    socket.on('crowd_density', (p) => {
+      crowdByZone[p.zoneId] = p;
+      if (lastState) renderZones(lastState);
+      const hot = p.ratio && p.ratio >= 1.5;
+      feed(`📡 Capteur BLE · ${p.zoneId} : ${p.deviceCount} appareils${p.ratio ? ` (×${p.ratio} vs normale)` : ''}`, hot ? 'warn' : '');
     });
 
     $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p style="color:var(--dim);font-size:13px">Aucun pour l\'instant.</p>'; };

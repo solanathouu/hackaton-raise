@@ -16,7 +16,10 @@
     "certs": "bash scripts/make-certs.sh",
     "smoke:crusoe": "node scripts/smoke-crusoe.js",
     "smoke:gradium": "node scripts/smoke-gradium.js",
-    "sim:demo": "node scripts/sim-demo.js"
+    "sim:demo": "node scripts/sim-demo.js",
+    "sim:agents": "node scripts/sim-agents.js",
+    "sensor:crowd": "node scripts/crowd-density.js",
+    "observe:sensors": "node scripts/observe-sensors.mjs"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

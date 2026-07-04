@@ -29,6 +29,13 @@ const ackTimers = new Map();       // assignmentId -> timeout
 const incidentCtx = new Map();     // incidentId -> { zoneId, skills, used:Set, rerouteCount:Map }
 const pendingByAgent = new Map();  // agentId -> Map(assignmentId -> dispatch)  (dispatchs non acquittés)
 
+// Densité de foule par zone (capteur BLE, scripts/crowd-density.js). Hors state :
+// c'est de la télémétrie ambiante, pas du roster. zoneId -> dernier payload.
+const crowdDensity = new Map();
+const densityWarnedAt = new Map(); // zoneId -> ts (anti-spam)
+const DENSITY_RATIO_ALERT = Number(process.env.DENSITY_RATIO_ALERT || 1.5);
+const DENSITY_WARN_COOLDOWN_MS = Number(process.env.DENSITY_WARN_COOLDOWN_MS || 120000);
+
 // --- Express : PWA + assets audio + API REST ------------------------------
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -216,6 +223,8 @@ function doReset() {
   ackTimers.clear();
   incidentCtx.clear();
   pendingByAgent.clear();
+  densityWarnedAt.clear();
+  crowdDensity.clear();
   state = buildState(loadSeed());
   store.logEvent('reset', {});
   broadcastState();
@@ -253,6 +262,30 @@ io.on('connection', (socket) => {
 
   socket.on('position', ({ agentId, zoneId }) => {
     if (setPosition(state, agentId, zoneId)) broadcastState();
+  });
+
+  // Capteur de densité (BLE) — télémétrie ambiante rebroadcastée à tous (carte +
+  // console op). Si densité anormale (ratio vs baseline) SUR une zone sans marge
+  // de couverture -> advisory proactive (même canal que F5, aucun nouveau contrat).
+  socket.on('crowd_density', (payload) => {
+    if (!payload?.zoneId || typeof payload.deviceCount !== 'number') return;
+    crowdDensity.set(payload.zoneId, payload);
+    io.emit('crowd_density', payload);
+
+    const z = zoneById(state, payload.zoneId);
+    if (!z || !payload.ratio || payload.ratio < DENSITY_RATIO_ALERT) return;
+    const zoneAgents = state.agents.filter((a) => a.current_zone === z.id && a.status === 'available');
+    const surplus = zoneAgents.length - z.required_min;
+    const last = densityWarnedAt.get(z.id) || 0;
+    if (surplus <= 0 && Date.now() - last > DENSITY_WARN_COOLDOWN_MS) {
+      densityWarnedAt.set(z.id, Date.now());
+      io.emit('coverage_warning', {
+        zoneId: z.id,
+        etaSec: 0,
+        message: `Densité inhabituelle ${z.name} (x${payload.ratio} vs normale, ${payload.deviceCount} appareils) sans marge de couverture. Pré-positionner un renfort ?`,
+      });
+      console.log(`[density] alerte ${z.id} ratio=${payload.ratio} count=${payload.deviceCount}`);
+    }
   });
 
   socket.on('incident_audio', async ({ agentId, audio, ts, lang }) => {
