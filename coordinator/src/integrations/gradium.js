@@ -69,21 +69,26 @@ async function gradiumTranscribe(buf, lang) {
     body,
   }, STT_TIMEOUT_MS);
   if (!res.ok) throw new Error(`Gradium STT ${res.status}: ${await res.text().catch(() => '')}`);
-  // Réponse ndjson : concatène tous les messages type:"text".
+  // Réponse ndjson : messages type:"text" = TOKENS (souvent sans espaces) ->
+  // à joindre par ' ' comme dans la doc Gradium, sinon "Arrêtcardiaque-manège…"
+  // et detectZone ne matche plus rien.
   const raw = await res.text();
-  let text = '';
+  const parts = [];
   for (const line of raw.split('\n')) {
     const s = line.trim();
     if (!s) continue;
     try {
       const msg = JSON.parse(s);
-      if (msg.type === 'text' && msg.text) text += msg.text;
+      if (msg.type === 'text' && msg.text) parts.push(msg.text.trim());
       if (msg.type === 'error') throw new Error(`Gradium STT stream error: ${msg.message}`);
     } catch (e) {
       if (/stream error/.test(e.message)) throw e; // vraie erreur -> propage
     }
   }
-  text = text.replace(/\s+/g, ' ').trim();
+  const text = parts.join(' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+([,.!?;:])/g, '$1') // pas d'espace avant la ponctuation
+    .trim();
   if (!text) throw new Error('Gradium STT : transcription vide');
   // Gradium ne renvoie PAS la langue détectée -> hint sinon détection déterministe locale.
   return { text, lang: lang || detectLang(text) };
