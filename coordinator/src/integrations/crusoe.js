@@ -193,18 +193,48 @@ async function tryModel(snapshot, transcript, model) {
   return callCrusoeWithRetry(snapshot, transcript, model);
 }
 
-/** Pré-chauffe le modèle primary (réduit TTFT en démo). */
+// Snapshot représentatif (S2 : arrêt cardiaque Z8) pour une pré-chauffe qui exerce le VRAI chemin
+// (system prompt + snapshot réel) et amorce le cache de préfixe côté Crusoe s'il existe — contrairement
+// à un ping trivial qui ne réchauffe que la connexion/le chargement du modèle.
+const PREWARM_SNAPSHOT = {
+  incident: { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr', zone_id: 'Z8' },
+  zones: [
+    { id: 'Z8', name: 'Manège Extrême', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] },
+    { id: 'Z2', name: 'Grand Huit', headcount: 3, required_min: 2, surplus: 1, required_skills: ['RCP'] },
+  ],
+  constraints: [],
+  candidates_primary: [
+    { id: 'A7', name: 'Hugo', skills: ['RCP'], current_zone: 'Z8', travel_time_s: 0, is_reserve: false },
+    { id: 'A1', name: 'Marco', skills: ['RCP', 'DAE'], current_zone: 'Z2', travel_time_s: 60, is_reserve: false },
+  ],
+  candidates_backfill_by_zone: {
+    Z8: [{ id: 'A1', name: 'Marco', skills: ['RCP', 'DAE'], current_zone: 'Z2', travel_time_s: 60, is_reserve: false, safe: true }],
+  },
+};
+
+/** Pré-chauffe primary + fallback avec un prompt REPRÉSENTATIF (system + snapshot réel).
+ *  Réduit le TTFT en démo et amorce le cache de préfixe s'il existe ; chauffer AUSSI le fallback
+ *  évite un premier appel dégradé à froid (F9). max_tokens bas = on chauffe sans générer.
+ *  Renvoie le temps total (ms) ou null si mock/pas de clé. Ne throw pas au boot (Promise.allSettled). */
 export async function prewarmCrusoe() {
   if (config.mockCrusoe || !config.crusoe.apiKey) return null;
-  const model = config.crusoe.model;
-  assertCrusoeModel(model, 'CRUSOE_MODEL');
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: buildUserMessage(PREWARM_SNAPSHOT, PREWARM_SNAPSHOT.incident.transcript) },
+  ];
+  const models = [...new Set([config.crusoe.model, config.crusoe.modelFallback])].filter(Boolean);
+  for (const m of models) assertCrusoeModel(m, 'CRUSOE_MODEL');
   const t0 = Date.now();
-  await getClient().chat.completions.create({
-    model,
-    messages: [{ role: 'user', content: '{"ping":true}' }],
-    max_tokens: 16,
-    response_format: { type: 'json_object' },
-  });
+  await Promise.allSettled(
+    models.map((model) =>
+      getClient().chat.completions.create({
+        model,
+        messages,
+        max_tokens: 64,
+        response_format: { type: 'json_object' },
+      }),
+    ),
+  );
   return Date.now() - t0;
 }
 
