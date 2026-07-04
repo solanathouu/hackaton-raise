@@ -11,3 +11,9 @@ tts-cache/
 # playwright / captures
 .playwright-mcp/
 *.png
+
+# P5 local only — prompt Rork (ne pas versionner)
+docs/rork-prompt-p5-console-operateur.md
+
+# Added by ggshield
+.cache_ggshield
