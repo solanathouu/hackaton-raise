@@ -1,0 +1,110 @@
+.park-map-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.park-map {
+  width: 100%;
+  height: 100%;
+  background: var(--color-bg);
+  touch-action: none;
+  user-select: none;
+}
+
+.park-map__reset {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+.park-map__reset:active {
+  background: var(--color-panel);
+}
+
+.park-map__link {
+  stroke: var(--color-border);
+  stroke-width: 2;
+}
+
+.park-map__route {
+  stroke: var(--color-red);
+  stroke-width: 3;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+}
+
+.park-map__route-dot {
+  fill: var(--color-red);
+}
+
+.park-map__badge {
+  fill: var(--color-bg);
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+
+.park-map__badge--active {
+  stroke: var(--color-red);
+  stroke-width: 2;
+  fill: var(--color-bg);
+}
+
+.park-map__halo {
+  fill: var(--color-red-soft);
+}
+
+.park-map__icon {
+  color: var(--color-red);
+}
+
+.park-map__code {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--color-text-muted);
+  text-anchor: middle;
+}
+
+.park-map__count {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--color-text-muted);
+  text-anchor: middle;
+}
+
+.park-map__zone {
+  cursor: pointer;
+}
+
+.park-map__tooltip-box {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-red);
+  border-radius: 8px;
+  background: var(--color-bg);
+  box-shadow: 0 2px 8px rgba(22, 27, 34, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.park-map__tooltip-box strong {
+  font-size: 11px;
+  color: var(--color-red);
+}
