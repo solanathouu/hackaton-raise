@@ -15,12 +15,14 @@ import { join } from 'node:path';
 import { sniffFormat, toWav, hasFfmpeg } from './audio.js';
 import { detectLang } from './lang.js';
 
-const WHISPER_BIN = process.env.WHISPER_BIN || '';
-const WHISPER_MODEL = process.env.WHISPER_MODEL || '';
-const WHISPER_TIMEOUT_MS = Number(process.env.WHISPER_TIMEOUT_MS || 15000);
+// Lecture PARESSEUSE de l'env (pas à l'import) : dotenv (config.js) doit avoir
+// tourné d'abord, ce qui n'est pas garanti pour un script/test isolé.
+const WHISPER_BIN = () => process.env.WHISPER_BIN || '';
+const WHISPER_MODEL = () => process.env.WHISPER_MODEL || '';
+const WHISPER_TIMEOUT_MS = () => Number(process.env.WHISPER_TIMEOUT_MS || 15000);
 
 export function whisperAvailable() {
-  return Boolean(WHISPER_BIN && WHISPER_MODEL);
+  return Boolean(WHISPER_BIN() && WHISPER_MODEL());
 }
 
 // Même forme que le Contrat D : -> { text, lang }
@@ -43,14 +45,14 @@ export async function transcribeLocal(audioBuf, { lang } = {}) {
 
   try {
     await new Promise((resolve, reject) => {
-      const p = spawn(WHISPER_BIN, [
-        '-m', WHISPER_MODEL,
+      const p = spawn(WHISPER_BIN(), [
+        '-m', WHISPER_MODEL(),
         '-f', wavPath,
         '-l', lang || 'auto',
         '--output-txt', '--output-file', outPrefix,
         '--no-prints',
       ], { stdio: 'ignore' });
-      const timer = setTimeout(() => { p.kill(); reject(new Error('whisper timeout')); }, WHISPER_TIMEOUT_MS);
+      const timer = setTimeout(() => { p.kill(); reject(new Error('whisper timeout')); }, WHISPER_TIMEOUT_MS());
       p.on('error', (e) => { clearTimeout(timer); reject(e); });
       p.on('exit', (code) => {
         clearTimeout(timer);

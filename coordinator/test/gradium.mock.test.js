@@ -3,6 +3,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+// Force le mode mock AVANT l'import : dotenv n'écrase pas les vars déjà posées,
+// le .env local (ex: MOCK_GRADIUM=false une fois la clé branchée) ne fuit pas ici.
+process.env.USE_MOCKS = 'true';
+process.env.MOCK_GRADIUM = 'true';
+
 const { transcribe, speak } = await import('../src/integrations/gradium.js');
 const { detectLang } = await import('../src/integrations/lang.js');
 const { sniffFormat, contentTypeFor } = await import('../src/integrations/audio.js');
