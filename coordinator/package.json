@@ -1,0 +1,28 @@
+{
+  "name": "conductor-coordinator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CONDUCTOR — coordinateur temps réel (état zones/agents + moteur cascade surplus-aware).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "engine:selftest": "node test/engine.selftest.js",
+    "certs": "bash scripts/make-certs.sh",
+    "smoke:crusoe": "node scripts/smoke-crusoe.js",
+    "smoke:gradium": "node scripts/smoke-gradium.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "openai": "^4.77.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}

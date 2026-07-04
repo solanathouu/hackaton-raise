@@ -1,0 +1,40 @@
+{
+  "_note": "Fixtures illustratives du kickoff (section 4). Utilisées par les intégrations en USE_MOCKS=true (crusoe/gradium). NB: le moteur (engine.js) NE lit PAS ce fichier — il calcule les vraies valeurs Floyd-Warshall sur zones.json/roster.json. Ex: le trajet Paul Z9->Z8 vaut 205s réel, 130s ici (approximation à la main).",
+  "transcribe_fr": { "text": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr" },
+  "transcribe_es": { "text": "un hombre se desplomó en la entrada, no respira", "lang": "es" },
+  "snapshot": {
+    "incident": { "transcript": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr", "zone_id": "Z8" },
+    "zones": [
+      { "id":"Z8","name":"Manège Extrême","headcount":2,"required_min":2,"surplus":0,"required_skills":["RCP"] },
+      { "id":"Z2","name":"Grand Huit","headcount":3,"required_min":2,"surplus":1,"required_skills":["RCP"] },
+      { "id":"Z5","name":"Place Centrale","headcount":3,"required_min":2,"surplus":1,"required_skills":[] },
+      { "id":"Z4","name":"Rivière Sauvage","headcount":1,"required_min":1,"surplus":0,"required_skills":["RCP"] }
+    ],
+    "constraints": [],
+    "candidates_primary": [
+      { "id":"A7","name":"Hugo","skills":["RCP"],"current_zone":"Z8","travel_time_s":0,"is_reserve":false },
+      { "id":"A1","name":"Marco","skills":["RCP","DAE"],"current_zone":"Z2","travel_time_s":60,"is_reserve":false }
+    ],
+    "candidates_backfill_by_zone": {
+      "Z8": [
+        { "id":"A1","name":"Marco","skills":["RCP","DAE"],"current_zone":"Z2","travel_time_s":60,"is_reserve":false,"safe":true },
+        { "id":"R1","name":"Paul","skills":["RCP","DAE","secu"],"current_zone":"Z9","travel_time_s":130,"is_reserve":true,"safe":true }
+      ]
+    }
+  },
+  "decision": {
+    "incident_type": "arret_cardiaque",
+    "zone_id": "Z8",
+    "skills_needed": ["RCP"],
+    "severity": 5,
+    "primary_id": "A7",
+    "backfills": [ { "agent_id": "A1", "target_zone": "Z8" } ],
+    "warning": null,
+    "justification": "Hugo (RCP) est sur zone au Manège Extrême, il intervient. Marco (RCP) vient du Grand Huit en surplus pour maintenir la couverture.",
+    "constraints_applied": []
+  },
+  "speak": { "audioUrl": "/mock/tts-sample.mp3" },
+  "ws_dispatch_primary": { "assignmentId":"as_1","incidentId":"inc_1","role":"primary","targetZone":"Z8","text":"Arrêt cardiaque au Manège Extrême, tu es le plus proche. Vas-y.","audioUrl":"/mock/tts-sample.mp3","lang":"fr" },
+  "ws_dispatch_backfill": { "assignmentId":"as_2","incidentId":"inc_1","role":"backfill","targetZone":"Z8","text":"Rejoins le Manège Extrême pour maintenir la couverture.","audioUrl":"/mock/tts-sample.mp3","lang":"fr" },
+  "ws_coverage_warning": { "zoneId":"Z6","etaSec":180,"message":"Zone Enfants tombera sous le minimum ~3 min. Accepter / réassigner ?" }
+}

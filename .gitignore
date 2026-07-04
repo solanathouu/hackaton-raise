@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+coordinator/certs/*.pem
+coordinator/certs/*.key
+*.log
+.DS_Store
+dist/
+tts-cache/
+
+# playwright / captures
+.playwright-mcp/
+*.png

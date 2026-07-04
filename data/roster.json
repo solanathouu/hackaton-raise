@@ -1,0 +1,18 @@
+[
+ {"id":"A1","name":"Marco","skills":["RCP","DAE"],"languages":["fr","en"],"current_zone":"Z2","home_zone":"Z2","is_reserve":false,"status":"available"},
+ {"id":"A2","name":"Ana","skills":["RCP"],"languages":["fr","es"],"current_zone":"Z2","home_zone":"Z2","is_reserve":false,"status":"available"},
+ {"id":"A3","name":"Karim","skills":["secu"],"languages":["fr"],"current_zone":"Z2","home_zone":"Z2","is_reserve":false,"status":"available"},
+ {"id":"A4","name":"Léa","skills":["RCP","medic"],"languages":["fr","en"],"current_zone":"Z5","home_zone":"Z5","is_reserve":false,"status":"available"},
+ {"id":"A5","name":"Tom","skills":["DAE","first-aid"],"languages":["fr"],"current_zone":"Z5","home_zone":"Z5","is_reserve":false,"status":"available"},
+ {"id":"A6","name":"Sofia","skills":["secu"],"languages":["fr","es"],"current_zone":"Z5","home_zone":"Z5","is_reserve":false,"status":"available"},
+ {"id":"A7","name":"Hugo","skills":["RCP"],"languages":["fr"],"current_zone":"Z8","home_zone":"Z8","is_reserve":false,"status":"available"},
+ {"id":"A8","name":"Nadia","skills":["secu"],"languages":["fr","en"],"current_zone":"Z8","home_zone":"Z8","is_reserve":false,"status":"available"},
+ {"id":"A9","name":"Yanis","skills":["first-aid"],"languages":["fr"],"current_zone":"Z6","home_zone":"Z6","is_reserve":false,"status":"available"},
+ {"id":"A10","name":"Emma","skills":["RCP","medic"],"languages":["fr","en"],"current_zone":"Z6","home_zone":"Z6","is_reserve":false,"status":"available"},
+ {"id":"A11","name":"Louis","skills":["RCP"],"languages":["fr"],"current_zone":"Z4","home_zone":"Z4","is_reserve":false,"status":"available"},
+ {"id":"A12","name":"Chloé","skills":["first-aid"],"languages":["fr"],"current_zone":"Z7","home_zone":"Z7","is_reserve":false,"status":"available"},
+ {"id":"A13","name":"Sami","skills":["secu"],"languages":["fr","en"],"current_zone":"Z1","home_zone":"Z1","is_reserve":false,"status":"available"},
+ {"id":"A14","name":"Inès","skills":["first-aid"],"languages":["fr"],"current_zone":"Z3","home_zone":"Z3","is_reserve":false,"status":"available"},
+ {"id":"R1","name":"Paul","skills":["RCP","DAE","secu"],"languages":["fr","en"],"current_zone":"Z9","home_zone":null,"is_reserve":true,"status":"available"},
+ {"id":"R2","name":"Lucia","skills":["RCP","medic"],"languages":["fr","es"],"current_zone":"Z7","home_zone":null,"is_reserve":true,"status":"available"}
+]
