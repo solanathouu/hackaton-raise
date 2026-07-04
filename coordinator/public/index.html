@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CONDUCTOR Coordinator</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f6f7f4;
+        color: #17211d;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+      }
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      button,
+      select {
+        min-height: 36px;
+        border: 1px solid #9cb7ae;
+        background: #ffffff;
+        border-radius: 6px;
+        padding: 0 12px;
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        background: #0f7b63;
+        color: #fff;
+        border-color: #0f7b63;
+      }
+      section {
+        display: grid;
+        gap: 10px;
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #d6ded9;
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+      pre {
+        overflow: auto;
+        white-space: pre-wrap;
+        font-size: 12px;
+        margin: 0;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #e8f1ed;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>CONDUCTOR Coordinator</h1>
+          <span class="pill" id="status">connecting</span>
+        </div>
+        <div class="bar">
+          <select id="agent">
+            <option value="A7">Hugo A7</option>
+            <option value="A1">Marco A1</option>
+            <option value="R1">Paul R1</option>
+          </select>
+          <button id="hello">Hello</button>
+          <button id="scenario">Run S2</button>
+          <button id="reset">Reset</button>
+        </div>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Dispatches</h2>
+          <pre id="dispatches"></pre>
+        </article>
+        <article class="card">
+          <h2>Warnings</h2>
+          <pre id="warnings"></pre>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Live State</h2>
+        <pre id="state"></pre>
+      </section>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const statusEl = document.querySelector("#status");
+      const stateEl = document.querySelector("#state");
+      const dispatchesEl = document.querySelector("#dispatches");
+      const warningsEl = document.querySelector("#warnings");
+      const log = (el, payload) => {
+        el.textContent = `${JSON.stringify(payload, null, 2)}\n\n${el.textContent}`.slice(0, 6000);
+      };
+
+      socket.on("connect", () => {
+        statusEl.textContent = `connected ${socket.id}`;
+        socket.emit("operator_hello");
+      });
+      socket.on("disconnect", () => (statusEl.textContent = "disconnected"));
+      socket.on("state", (state) => {
+        stateEl.textContent = JSON.stringify(
+          {
+            zones: state.zones.map((z) => ({
+              id: z.id,
+              name: z.name,
+              headcount: z.headcount,
+              min: z.required_min,
+              surplus: z.surplus,
+              missing: z.missing_skills
+            })),
+            agents: state.agents.map((a) => ({
+              id: a.id,
+              zone: a.current_zone,
+              status: a.status,
+              connected: a.connected
+            })),
+            incidents: state.incidents,
+            assignments: state.assignments
+          },
+          null,
+          2
+        );
+      });
+      socket.on("dispatch", (payload) => log(dispatchesEl, payload));
+      socket.on("coverage_warning", (payload) => log(warningsEl, payload));
+
+      document.querySelector("#hello").addEventListener("click", () => {
+        socket.emit("hello", { agentId: document.querySelector("#agent").value });
+      });
+      document.querySelector("#scenario").addEventListener("click", async () => {
+        await fetch("/api/demo/sim_incident", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scenario: "S2" })
+        });
+      });
+      document.querySelector("#reset").addEventListener("click", async () => {
+        await fetch("/api/demo/reset", { method: "POST" });
+      });
+    </script>
+  </body>
+</html>
+

@@ -4,6 +4,9 @@ node_modules/
 coordinator/certs/*.pem
 coordinator/certs/*.key
 *.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 .DS_Store
 dist/
 tts-cache/

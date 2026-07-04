@@ -8,9 +8,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test test/engine.selftest.js test/gradium.mock.test.js test/gradium.real.test.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/p2-engine.test.js test/p2-persistence.test.js",
+    "test:legacy": "node --test test/engine.selftest.js test/gradium.mock.test.js test/gradium.real.test.js",
     "test:e2e": "node test/ws.e2e.js",
     "engine:selftest": "node test/engine.selftest.js",
     "certs": "bash scripts/make-certs.sh",
@@ -18,8 +19,11 @@
     "smoke:gradium": "node scripts/smoke-gradium.js"
   },
   "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "morgan": "^1.10.0",
     "openai": "^4.77.0",
     "socket.io": "^4.8.1"
   },
