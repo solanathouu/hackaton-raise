@@ -35,6 +35,8 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     useMocks: config.useMocks,
+    mockCrusoe: config.mockCrusoe,
+    mockGradium: config.mockGradium,
     crusoe: {
       liveReady: crusoeLive.ok,
       model: config.crusoe.model,
@@ -227,10 +229,12 @@ assertCrusoeLiveWorkflowOrExit();
 
 server.listen(config.port, '0.0.0.0', () => {
   const proto = server instanceof https.Server ? 'https' : 'http';
-  console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}  (USE_MOCKS=${config.useMocks})`);
-  if (!config.useMocks) {
-    console.log(`   [crusoe] workflow réel — primary: ${config.crusoe.model}`);
-    console.log(`   [crusoe] workflow réel — fallback: ${config.crusoe.modelFallback}`);
+  console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}`);
+  console.log(
+    `   cerveau: ${config.mockCrusoe ? 'mock' : `Crusoe(${config.crusoe.model})`} · voix: ${config.mockGradium ? 'mock' : 'Gradium'}`,
+  );
+  if (!config.mockCrusoe) {
+    console.log(`   [crusoe] fallback: ${config.crusoe.modelFallback}`);
     console.log(`   [crusoe] allowlist: ${config.crusoe.allowedModels.length} modèles autorisés`);
     prewarmCrusoe()
       .then((ms) => ms != null && console.log(`   [crusoe] pré-chauffe OK (${ms} ms)`))

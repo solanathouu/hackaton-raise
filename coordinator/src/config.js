@@ -7,6 +7,11 @@ import { dirname, resolve } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = resolve(__dirname, '../../data');
 
+const master = String(process.env.USE_MOCKS ?? 'true').toLowerCase() !== 'false';
+// Mock par intégration : MOCK_CRUSOE / MOCK_GRADIUM surchargent le master USE_MOCKS.
+// -> permet cerveau réel + voix mockée (ou l'inverse) pendant l'intégration incrémentale.
+const perInt = (v) => (v === undefined ? master : String(v).toLowerCase() !== 'false');
+
 /** Modèles Crusoe autorisés — liste stricte (compte hackathon). */
 export const ALLOWED_CRUSOE_MODELS = [
   'deepseek-ai/Deepseek-V4-Flash',
@@ -17,7 +22,7 @@ export const ALLOWED_CRUSOE_MODELS = [
 ];
 
 const CRUSOE_DEFAULT_MODEL = 'deepseek-ai/Deepseek-V4-Flash';
-const CRUSOE_DEFAULT_FALLBACK = 'nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B';
+const CRUSOE_DEFAULT_FALLBACK = 'google/gemma-4-31b-it';
 
 export function assertCrusoeModel(model, label = 'CRUSOE_MODEL') {
   if (!ALLOWED_CRUSOE_MODELS.includes(model)) {
@@ -36,6 +41,7 @@ function resolveCrusoeModel(raw, fallback, label) {
 /** Vérifie que le workflow réel Crusoe est prêt (clé + modèles allowlist). */
 export function validateCrusoeLiveWorkflow(cfg = config) {
   const errors = [];
+  if (cfg.mockCrusoe) return { ok: true, errors: [] };
   if (!cfg.crusoe.apiKey) errors.push('CRUSOE_API_KEY manquante');
   try {
     assertCrusoeModel(cfg.crusoe.model, 'CRUSOE_MODEL');
@@ -49,12 +55,12 @@ export function validateCrusoeLiveWorkflow(cfg = config) {
   return { ok: errors.length === 0, errors };
 }
 
-/** Bloque le démarrage si USE_MOCKS=false et config Crusoe invalide. */
+/** Bloque le démarrage si Crusoe réel demandé et config invalide. */
 export function assertCrusoeLiveWorkflowOrExit(cfg = config) {
-  if (cfg.useMocks) return;
+  if (cfg.mockCrusoe) return;
   const { ok, errors } = validateCrusoeLiveWorkflow(cfg);
   if (!ok) {
-    console.error('\n❌ Workflow Crusoe réel bloqué (USE_MOCKS=false) :');
+    console.error('\n❌ Workflow Crusoe réel bloqué (MOCK_CRUSOE=false) :');
     for (const e of errors) console.error(`   - ${e}`);
     console.error(`\n   Modèles autorisés uniquement :\n   - ${ALLOWED_CRUSOE_MODELS.join('\n   - ')}\n`);
     process.exit(1);
@@ -63,13 +69,19 @@ export function assertCrusoeLiveWorkflowOrExit(cfg = config) {
 
 export const config = {
   port: Number(process.env.PORT || 3000),
-  useMocks: String(process.env.USE_MOCKS ?? 'true').toLowerCase() !== 'false',
+  useMocks: master,
+  mockCrusoe: perInt(process.env.MOCK_CRUSOE),
+  mockGradium: perInt(process.env.MOCK_GRADIUM),
   ackTimeoutMs: Number(process.env.ACK_TIMEOUT_MS || 15000),
   crusoe: {
     apiKey: process.env.CRUSOE_API_KEY || '',
     baseURL: process.env.CRUSOE_BASE_URL || 'https://api.inference.crusoecloud.com/v1',
     model: resolveCrusoeModel(process.env.CRUSOE_MODEL, CRUSOE_DEFAULT_MODEL, 'CRUSOE_MODEL'),
-    modelFallback: resolveCrusoeModel(process.env.CRUSOE_MODEL_FALLBACK, CRUSOE_DEFAULT_FALLBACK, 'CRUSOE_MODEL_FALLBACK'),
+    modelFallback: resolveCrusoeModel(
+      process.env.CRUSOE_MODEL_FALLBACK,
+      CRUSOE_DEFAULT_FALLBACK,
+      'CRUSOE_MODEL_FALLBACK',
+    ),
     allowedModels: ALLOWED_CRUSOE_MODELS,
   },
   gradium: { apiKey: process.env.GRADIUM_API_KEY || '' },

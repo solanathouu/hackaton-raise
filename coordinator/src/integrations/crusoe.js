@@ -194,7 +194,7 @@ async function tryModel(snapshot, transcript, model) {
 
 /** Pré-chauffe le modèle primary (réduit TTFT en démo). */
 export async function prewarmCrusoe() {
-  if (config.useMocks || !config.crusoe.apiKey) return null;
+  if (config.mockCrusoe || !config.crusoe.apiKey) return null;
   const model = config.crusoe.model;
   assertCrusoeModel(model, 'CRUSOE_MODEL');
   const t0 = Date.now();
@@ -209,7 +209,9 @@ export async function prewarmCrusoe() {
 
 /** Contrat E — renvoie TOUJOURS une Decision. Ne throw jamais (F9). */
 export async function decide(snapshot, transcript) {
-  if (config.useMocks) {
+  if (config.mockCrusoe) {
+    // Mode mock/offline = fallback déterministe piloté par le transcript (detectZone + moteur).
+    // Fait tourner TOUT le pipeline sans clé et incarne la résilience F9. Reproduit S2 (Hugo+Marco).
     return { ...deterministicDecide(snapshot, transcript), _source: 'mock:deterministic' };
   }
   if (!config.crusoe.apiKey) {

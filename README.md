@@ -40,11 +40,15 @@ ACK_TIMEOUT_MS=1500 npm start &
 node test/ws.e2e.js           # 13 checks : WS, cascade, accusé, re-route, override, warning
 ```
 
-### Brancher le réel (quand les clés sont là)
+### Brancher le réel (mock par intégration)
+`MOCK_CRUSOE` / `MOCK_GRADIUM` surchargent `USE_MOCKS` → on branche une brique à la fois.
 ```bash
-# dans .env : USE_MOCKS=false + CRUSOE_API_KEY + GRADIUM_API_KEY (coupon RAISE-2026)
-npm run smoke:crusoe          # tool-calling JSON + latence
-npm run smoke:gradium         # STT (scripts/sample.wav) + TTS
+# .env : MOCK_CRUSOE=false (cerveau réel), MOCK_GRADIUM=true (voix mockée)
+npm run smoke:crusoe            # décision JSON + latence (défaut : DeepSeek V4 Flash, ~2.5s)
+node scripts/compare-models.js  # benchmark des 5 modèles autorisés du endpoint
+# serveur en marche, puis :
+node scripts/smoke-pipeline.js  # S1/S2/S4 end-to-end avec le vrai LLM (gate H+7 ✅)
+# quand la clé Gradium arrive : MOCK_GRADIUM=false + npm run smoke:gradium
 ```
 
 ---
@@ -99,6 +103,7 @@ app/public/      PWA staff (harnais de test fonctionnel — P4 étend/remplace)
 - [x] Moteur cascade surplus-aware — **35/35** · Coordinateur WS e2e — **13/13**
 - [x] HTTPS mkcert (certs générés ; `mkcert -install` = à faire toi, sudo)
 - [x] `USE_MOCKS=true` par défaut, pipeline offline de bout en bout
-- [ ] **Clés API à récupérer** : Crusoe (Intelligence Foundry) + Gradium (coupon `RAISE-2026`) → puis `USE_MOCKS=false` + smoke-tests
+- [x] **Crusoe branché** (clé posée, DeepSeek V4 Flash) — pipeline réel S1/S2/S4 validé, **gate H+7 ✅**
+- [ ] **Gradium** : clé à récupérer (coupon `RAISE-2026`) → `MOCK_GRADIUM=false` + voice_ids + `npm run smoke:gradium`
 
 Spec complète : `docs/conductor-PRD.md`. Contexte : `docs/conductor-context-brief.md`. Kit équipe : `docs/conductor-team-kickoff.md`.

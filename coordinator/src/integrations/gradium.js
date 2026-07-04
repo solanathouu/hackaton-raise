@@ -24,7 +24,7 @@ const CT_BY_FORMAT = { wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/ogg', we
 
 // --- transcribe : audio -> { text, lang } ---------------------------------
 export async function transcribe(audio, { lang, inputFormat = 'opus' } = {}) {
-  if (config.useMocks) {
+  if (config.mockGradium) {
     const fx = loadMockFixtures();
     return lang === 'es' ? fx.transcribe_es : fx.transcribe_fr; // hint 'es' pour la démo S4
   }
@@ -57,7 +57,7 @@ export async function transcribe(audio, { lang, inputFormat = 'opus' } = {}) {
 
 // --- speak : (text, lang) -> { audioUrl } ----------------------------------
 export async function speak(text, lang = 'fr', { id, format = 'wav' } = {}) {
-  if (config.useMocks) return loadMockFixtures().speak; // { audioUrl: "/mock/tts-sample.mp3" }
+  if (config.mockGradium) return loadMockFixtures().speak; // { audioUrl: "/mock/tts-sample.mp3" }
   const res = await fetch(`${BASE}/post/speech/tts`, {
     method: 'POST',
     headers: { 'x-api-key': config.gradium.apiKey, 'Content-Type': 'application/json' },
