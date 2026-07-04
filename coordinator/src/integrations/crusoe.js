@@ -113,8 +113,9 @@ export function validateDecision(raw, snapshot) {
     );
   }
 
-  if (incidentZone && decision.zone_id && decision.zone_id !== incidentZone) {
-    errors.push(`zone_id "${decision.zone_id}" ≠ incident.zone_id "${incidentZone}"`);
+  // Zone détectée dans le snapshot (detectZone) prime sur le LLM.
+  if (incidentZone && decision.zone_id !== incidentZone) {
+    decision.zone_id = incidentZone;
   }
 
   const rawBackfills = Array.isArray(raw.backfills) ? raw.backfills.slice(0, 2) : [];

@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>CONDUCTOR — staff</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230d1117'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%23388bfd' stroke-width='7'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23f85149'/%3E%3C/svg%3E" />
+  <title>Weave — staff</title>
+  <link rel="icon" href="/assets/weave-icon.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#0d1117" />
   <style>
     :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --ok:#2ea043; --warn:#e3b341; --bad:#f85149; --txt:#e6edf3; --dim:#8b949e; --accent:#388bfd; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     body { margin:0; font:15px/1.4 -apple-system,system-ui,sans-serif; background:var(--bg); color:var(--txt); }
     header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+    header .brand { display:flex; align-items:center; gap:8px; }
+    header .brand img { width:24px; height:24px; display:block; border-radius:6px; }
     header h1 { font-size:16px; margin:0; letter-spacing:.5px; }
     header .dot { width:9px; height:9px; border-radius:50%; background:var(--bad); }
     header .dot.on { background:var(--ok); }
@@ -43,19 +45,57 @@
     .badge.degraded { background:#3d2b0a; color:var(--warn); border:1px solid var(--warn); }
     .badge.live { background:#0f2d18; color:var(--ok); border:1px solid var(--ok); }
     .feed .cstr { color:var(--accent); }
+    .guidance { display:none; padding:10px 14px; background:#132a3d; border-bottom:1px solid var(--accent); font-size:14px; }
+    .guidance.on { display:block; }
+    .guidance b { color:var(--accent); }
+    .pos-zones { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .pos-zones button { font-size:12px; padding:6px 8px; }
+    .pos-zones button.here { background:var(--accent); border-color:var(--accent); }
+    .pos-zones button.me { outline:2px solid var(--ok); }
+    .map-wrap { position:relative; width:100%; aspect-ratio:5/4; background:#0d1117; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .map-wrap svg { width:100%; height:100%; }
+    .map-zone { fill:#21262d; stroke:var(--line); stroke-width:1; cursor:pointer; }
+    .map-zone.bad { fill:#3d1a1a; stroke:var(--bad); }
+    .map-zone.sur { fill:#132a3d; stroke:var(--accent); }
+    .map-zone.ok { fill:#0f2d18; stroke:var(--ok); }
+    .map-zone.sel { stroke:var(--accent); stroke-width:2; }
+    .map-label { font-size:9px; fill:var(--dim); pointer-events:none; }
+    .map-agent { font-size:10px; font-weight:700; fill:var(--txt); pointer-events:none; }
+    .feed .pos { color:var(--accent); }
+    .feed .guide { color:#79c0ff; }
   </style>
 </head>
 <body>
   <header>
     <span class="dot" id="dot"></span>
-    <h1>CONDUCTOR</h1>
+    <div class="brand">
+      <img src="/assets/weave-icon.svg" alt="" width="24" height="24" />
+      <h1>Weave</h1>
+    </div>
     <span id="mode" class="badge" style="display:none"></span>
     <span style="flex:1"></span>
     <label style="font-size:12px;color:var(--dim)">Agent</label>
     <select id="who"></select>
   </header>
+  <div class="guidance" id="guidance"></div>
 
   <main>
+    <div class="card">
+      <h2>Ma position</h2>
+      <div class="row">
+        <button id="gpsBtn">📍 GPS ponctuel</button>
+        <button id="gpsLiveBtn">▶ Suivi GPS live</button>
+        <span id="posStatus" style="font-size:12px;color:var(--dim)">Zone seed · tap ou GPS pour mettre à jour</span>
+      </div>
+      <div class="pos-zones" id="posZones"></div>
+    </div>
+
+    <div class="card">
+      <h2>Carte live</h2>
+      <div class="map-wrap" id="mapWrap"></div>
+      <p style="font-size:11px;color:var(--dim);margin:8px 0 0">Tap une zone pour check-in · points = agents disponibles</p>
+    </div>
+
     <div class="card">
       <h2>Signalement vocal</h2>
       <div class="lang" style="margin-bottom:8px">
@@ -89,6 +129,7 @@
         <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
         <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · réserviste ES</button>
         <button id="f8" style="background:#132a3d">F8 · protège Marco (override)</button>
+        <button id="scanRepo" style="background:#132a3d">Scan repositionnement</button>
         <button id="reset" style="background:#3d1a1a">reset</button>
       </div>
     </div>
@@ -99,13 +140,76 @@
     const socket = io();
     let me = localStorage.getItem('me') || 'A7';
     let lang = 'fr';
+    let lastState = null;
     const $ = (s) => document.querySelector(s);
+
+    function showGuidance(g) {
+      const el = $('#guidance');
+      if (!g?.message) { el.classList.remove('on'); return; }
+      el.innerHTML = `<b>↗ Repositionnement</b> · ${g.message}` +
+        (g.targetZone ? ` <button style="margin-left:8px;font-size:12px" onclick="goZone('${g.targetZone}')">Aller ${g.targetZone}</button>` : '');
+      el.classList.add('on');
+      if (navigator.vibrate) navigator.vibrate(80);
+    }
+    window.goZone = (zoneId) => socket.emit('position', { agentId: me, zoneId });
+
+    function renderPosZones(st) {
+      const mine = st.agents.find(a => a.id === me);
+      $('#posZones').innerHTML = st.zones.map(z => {
+        const cls = mine?.current_zone === z.id ? 'here' : '';
+        return `<button class="${cls}" data-z="${z.id}">${z.id} · ${z.name}</button>`;
+      }).join('');
+      document.querySelectorAll('#posZones button').forEach(b => {
+        b.onclick = () => socket.emit('position', { agentId: me, zoneId: b.dataset.z });
+      });
+      if (mine) {
+        const zn = st.zones.find(z => z.id === mine.current_zone)?.name || mine.current_zone;
+        const when = mine.position_at ? new Date(mine.position_at).toLocaleTimeString('fr') : 'seed';
+        const gps = mine.lat != null ? ` · GPS ${mine.lat.toFixed(5)},${mine.lon.toFixed(5)}` : '';
+        $('#posStatus').textContent = `${mine.current_zone} · ${zn} · maj ${when}${gps}`;
+      }
+    }
+
+    function renderMap(st) {
+      const mine = st.agents.find(a => a.id === me);
+      const byZone = {};
+      for (const a of st.agents) {
+        if (a.status !== 'available') continue;
+        (byZone[a.current_zone] ||= []).push(a);
+      }
+      const zones = st.zones.filter(z => z.map_x != null);
+      const agentsSvg = zones.flatMap(z => {
+        const list = byZone[z.id] || [];
+        return list.map((a, i) => {
+          const ox = (i % 3) * 7 - 7;
+          const oy = Math.floor(i / 3) * 7;
+          const fill = a.id === me ? 'var(--ok)' : a.is_reserve ? 'var(--warn)' : 'var(--accent)';
+          return `<circle cx="${z.map_x + ox}" cy="${z.map_y + oy}" r="4" fill="${fill}" />
+            <text class="map-agent" x="${z.map_x + ox}" y="${z.map_y + oy - 6}" text-anchor="middle">${a.id}</text>`;
+        });
+      }).join('');
+      const zonesSvg = zones.map(z => {
+        const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
+        const sel = mine?.current_zone === z.id ? ' sel' : '';
+        return `<g class="map-zone-g" data-z="${z.id}">
+          <circle class="map-zone ${cls}${sel}" cx="${z.map_x}" cy="${z.map_y}" r="14" />
+          <text class="map-label" x="${z.map_x}" y="${z.map_y + 22}" text-anchor="middle">${z.id}</text>
+        </g>`;
+      }).join('');
+      $('#mapWrap').innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">${zonesSvg}${agentsSvg}</svg>`;
+      document.querySelectorAll('.map-zone-g').forEach(g => {
+        g.onclick = () => socket.emit('position', { agentId: me, zoneId: g.dataset.z });
+      });
+    }
 
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
+    socket.on('guidance', (g) => { if (g.agentId === me) showGuidance(g); });
+    socket.on('error_msg', (e) => alert(e.message || 'Erreur'));
 
     // --- state / zones ---
     socket.on('state', (st) => {
+      lastState = st;
       const who = $('#who');
       if (who.options.length !== st.agents.length) {
         who.innerHTML = st.agents.map(a => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve?' (R)':''}</option>`).join('');
@@ -115,9 +219,11 @@
         const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
         return `<div class="zone ${cls}"><div class="n">${z.name}</div><div class="h">${z.headcount}<span style="font-size:12px;color:var(--dim)">/${z.required_min}</span></div>${z.required_skills.length?`<div class="sk">${z.required_skills.join(',')}</div>`:''}</div>`;
       }).join('');
+      renderPosZones(st);
+      renderMap(st);
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p style="color:var(--dim);font-size:13px">Aucun pour l\'instant.</p>'; };
+    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p style="color:var(--dim);font-size:13px">Aucun pour l\'instant.</p>'; $('#guidance').classList.remove('on'); };
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
     // --- dispatch reçu (seulement pour moi) ---
@@ -156,6 +262,62 @@
     socket.on('coverage_warning', (w) => feed(`⚠ ${w.message}`, 'warn'));
     socket.on('ack_log', (a) => feed(`✅ ${a.agentId} a accusé ${a.assignmentId}`));
     socket.on('override_log', (o) => feed(`✋ override → ${o.newAgentId}${o.reason?` (${o.reason})`:''}`));
+    socket.on('dispatch_log', (d) => feed(`📤 dispatch ${d.role} → ${d.agentId} · ${d.targetZone}`));
+    socket.on('position_log', (p) => {
+      const extra = p.lat != null ? ` (${p.lat.toFixed(5)},${p.lon.toFixed(5)} ±${p.accuracy ?? '?'}m)` : '';
+      feed(`📍 ${p.agentId} → ${p.zoneId}${extra} [${p.source}]`, 'pos');
+    });
+    socket.on('guidance_log', (g) => {
+      const who = g.agentId ? `${g.agentId}` : 'scan';
+      feed(`↗ guidance ${who} : ${g.message || g.targetZone || ''}`, 'guide');
+    });
+
+    let gpsWatch = null;
+    let lastGpsAt = 0;
+    let lastGpsLat = null;
+    let lastGpsLon = null;
+
+    function sendGps(pos) {
+      const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+      const now = Date.now();
+      const moved = lastGpsLat == null ? 1 : Math.abs(lat - lastGpsLat) + Math.abs(lon - lastGpsLon);
+      if (lastGpsLat != null && now - lastGpsAt < 10000 && moved < 0.00005) return;
+      lastGpsAt = now;
+      lastGpsLat = lat;
+      lastGpsLon = lon;
+      socket.emit('gps_position', { agentId: me, lat, lon, accuracy });
+    }
+
+    $('#gpsBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS indisponible sur ce navigateur.');
+      $('#gpsBtn').textContent = '… localisation';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { sendGps(pos); $('#gpsBtn').textContent = '📍 GPS ponctuel'; },
+        (err) => { alert('GPS : ' + err.message); $('#gpsBtn').textContent = '📍 GPS ponctuel'; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+      );
+    };
+
+    $('#gpsLiveBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS indisponible sur ce navigateur.');
+      const btn = $('#gpsLiveBtn');
+      if (gpsWatch != null) {
+        navigator.geolocation.clearWatch(gpsWatch);
+        gpsWatch = null;
+        btn.textContent = '▶ Suivi GPS live';
+        btn.style.background = '';
+        return;
+      }
+      btn.textContent = '⏹ Arrêter GPS';
+      btn.style.background = 'var(--accent)';
+      gpsWatch = navigator.geolocation.watchPosition(
+        (pos) => sendGps(pos),
+        (err) => alert('GPS live : ' + err.message),
+        { enableHighAccuracy: true, maximumAge: 8000, timeout: 15000 },
+      );
+      // premier fix immédiat
+      navigator.geolocation.getCurrentPosition((pos) => sendGps(pos), () => {}, { enableHighAccuracy: true, timeout: 10000 });
+    };
 
     // --- PTT micro ---
     let rec, chunks = [];
@@ -185,7 +347,8 @@
       socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protège Marco' });
       feed('✋ override : « protège Marco » → contrainte apprise. Relance S2 : le moteur ne ponctionnera plus Marco.', 'cstr');
     };
-    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; };
+    $('#scanRepo').onclick = () => socket.emit('scan_reposition');
+    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on'); };
   </script>
 </body>
 </html>

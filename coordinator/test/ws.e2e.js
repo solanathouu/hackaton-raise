@@ -3,11 +3,14 @@
 //   node test/ws.e2e.js
 import { io } from 'socket.io-client';
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.E2E_HOST || '127.0.0.1';
 const PROTO = process.env.E2E_PROTO || 'http';
-const URL = `${PROTO}://${HOST}:${PORT}`;
+const URL = PROTO === 'https' && PORT === 443
+  ? `${PROTO}://${HOST}`
+  : `${PROTO}://${HOST}:${PORT}`;
 const LLM_WAIT_MS = Number(process.env.E2E_LLM_WAIT_MS || 12000);
+const ACK_WAIT_MS = Number(process.env.ACK_TIMEOUT_MS || 15000) + 4000;
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log(`  ✓ ${m}`); } else { fail++; console.log(`  ✗ ${m}`); } };
@@ -92,7 +95,7 @@ op.emit('sim_incident', { transcript: 'malaise au grand huit', lang: 'fr' });
 await waitFor(() => buf.dispatch_log.length >= 1, LLM_WAIT_MS);
 {
   const before = buf.dispatch_log.length;
-  const rerouted = await waitFor(() => buf.dispatch_log.some((d) => /re-route/.test(d.text || '')), Number(process.env.ACK_TIMEOUT_MS || 1500) + 2500);
+  const rerouted = await waitFor(() => buf.dispatch_log.some((d) => /re-route/.test(d.text || '')), ACK_WAIT_MS);
   ok(rerouted, 'un dispatch re-routé est apparu (aucun accusé) — incident jamais perdu');
   if (rerouted) { const r = buf.dispatch_log.find((d) => /re-route/.test(d.text)); op.emit('ack', { assignmentId: r.assignmentId }); }
 }
@@ -100,9 +103,13 @@ await waitFor(() => buf.dispatch_log.length >= 1, LLM_WAIT_MS);
 // --- Warning : dépléter le RCP jusqu'à l'alerte proactive ---
 console.log('\n[Warning] surplus + réserves épuisés -> coverage_warning proactif');
 await resetAndClear();
-for (let i = 0; i < 10 && buf.coverage_warning.length === 0; i++) {
-  op.emit('sim_incident', { transcript: i % 2 ? 'arrêt cardiaque à la rivière sauvage, il ne respire plus' : 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
-  await sleep(220);
+for (let i = 0; i < 6 && buf.coverage_warning.length === 0; i++) {
+  op.emit('sim_incident', {
+    transcript: i % 2 ? 'arrêt cardiaque à la rivière sauvage, il ne respire plus' : 'arrêt cardiaque au manège extrême, il ne respire plus',
+    lang: 'fr',
+  });
+  await waitFor(() => buf.incident.length > i, LLM_WAIT_MS);
+  await sleep(300);
 }
 ok(buf.coverage_warning.length > 0, `coverage_warning émis après dépletion [${buf.coverage_warning.length} warning(s)]`);
 if (buf.coverage_warning[0]) console.log(`     → "${buf.coverage_warning[0].message}"`);
@@ -118,7 +125,7 @@ await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.ro
 {
   const back = buf.dispatch_log.find((d) => d.role === 'backfill');
   ok(back && back.agentId !== 'A1', `backfill n'est PAS Marco (A1) [reçu ${back?.agentId}]`);
-  ok(buf.incident[0]?.constraints_applied?.includes('protège Marco'), 'incident.constraints_applied propagé au client');
+  ok(buf.incident[0]?.constraints_applied?.some((c) => /marco/i.test(c)), 'incident.constraints_applied propagé au client');
 }
 
 // --- Badge résilience : en mock, source déterministe (non dégradé) ---

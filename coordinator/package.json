@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "CONDUCTOR — coordinateur temps réel (état zones/agents + moteur cascade surplus-aware).",
+  "description": "Weave — coordinateur temps réel (état zones/agents + moteur cascade surplus-aware).",
   "engines": {
     "node": ">=20"
   },

@@ -86,10 +86,35 @@ export const config = {
   },
   gradium: { apiKey: process.env.GRADIUM_API_KEY || '' },
   tls: { cert: process.env.TLS_CERT || 'certs/cert.pem', key: process.env.TLS_KEY || 'certs/key.pem' },
+  gps: {
+    // Ancrage : décale les coords des zones pour coller au parc réel (Place Centrale = PARK_LAT/LON).
+    parkLat: process.env.PARK_LAT ? Number(process.env.PARK_LAT) : null,
+    parkLon: process.env.PARK_LON ? Number(process.env.PARK_LON) : null,
+    maxDistanceM: Number(process.env.GPS_MAX_DISTANCE_M || 800),
+    logPath: process.env.POSITION_LOG_PATH || 'logs/positions.jsonl',
+  },
 };
 
+/** Centre du seed (Z5 Place Centrale dans data/zones.json). */
+export const SEED_PARK_CENTER = { lat: 48.8566, lon: 2.3522 };
+
+export function anchorZones(zones, parkLat, parkLon) {
+  if (parkLat == null || parkLon == null) return zones.map((z) => ({ ...z }));
+  const dLat = parkLat - SEED_PARK_CENTER.lat;
+  const dLon = parkLon - SEED_PARK_CENTER.lon;
+  return zones.map((z) => ({
+    ...z,
+    lat: z.lat != null ? z.lat + dLat : z.lat,
+    lon: z.lon != null ? z.lon + dLon : z.lon,
+  }));
+}
+
 export function loadSeed() {
-  const zones = JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8'));
+  const zones = anchorZones(
+    JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8')),
+    config.gps.parkLat,
+    config.gps.parkLon,
+  );
   const roster = JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
   return { zones, roster };
 }

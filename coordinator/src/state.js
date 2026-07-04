@@ -26,6 +26,9 @@ export function serializeState(state) {
       current_zone: a.current_zone,
       is_reserve: a.is_reserve,
       status: a.status,
+      lat: a.lat ?? null,
+      lon: a.lon ?? null,
+      position_at: a.position_at ?? null,
     })),
     zones: state.zones.map((z) => ({
       id: z.id,
@@ -33,6 +36,10 @@ export function serializeState(state) {
       required_min: z.required_min,
       required_skills: z.required_skills,
       adjacency: z.adjacency,
+      map_x: z.map_x,
+      map_y: z.map_y,
+      lat: z.lat,
+      lon: z.lon,
       headcount: headcount(state, z.id),
       surplus: surplus(state, z.id),
     })),
@@ -40,9 +47,13 @@ export function serializeState(state) {
 }
 
 // Mutations ------------------------------------------------------------------
-export function setPosition(state, agentId, zoneId) {
+export function setPosition(state, agentId, zoneId, { lat, lon } = {}) {
   const a = state.agents.find((x) => x.id === agentId);
-  if (a) a.current_zone = zoneId;
+  if (!a) return null;
+  a.current_zone = zoneId;
+  if (lat != null) a.lat = lat;
+  if (lon != null) a.lon = lon;
+  a.position_at = Date.now();
   return a;
 }
 

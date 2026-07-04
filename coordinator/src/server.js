@@ -12,6 +12,8 @@ import { Server as SocketServer } from 'socket.io';
 import { config, loadSeed, assertCrusoeLiveWorkflowOrExit, validateCrusoeLiveWorkflow } from './config.js';
 import { buildState, serializeState, setPosition, setStatus, commitAgents, nextIncidentId, addConstraint } from './state.js';
 import { candidatesPrimary, candidatesBackfill, zoneById } from './engine.js';
+import { computeRepositionHints, hintForAgentId, resolveGpsZone } from './guidance.js';
+import { logPosition } from './position-log.js';
 import { handleIncident } from './agent.js';
 import { prewarmCrusoe } from './integrations/crusoe.js';
 
@@ -47,6 +49,17 @@ app.get('/health', (_req, res) => {
   });
 });
 app.get('/api/state', (_req, res) => res.json(serializeState(state)));
+app.get('/api/position-logs', (_req, res) => {
+  const limit = Math.min(Number(_req.query.limit) || 50, 200);
+  const path = resolve(ROOT, config.gps.logPath);
+  if (!existsSync(path)) return res.json([]);
+  try {
+    const lines = readFileSync(path, 'utf8').trim().split('\n').filter(Boolean);
+    res.json(lines.slice(-limit).map((l) => JSON.parse(l)).reverse());
+  } catch {
+    res.json([]);
+  }
+});
 
 // --- HTTP(S) server + Socket.io -------------------------------------------
 const server = createServer(app);
@@ -64,6 +77,39 @@ function createServer(expressApp) {
 }
 
 const broadcastState = () => io.emit('state', serializeState(state));
+
+function emitGuidance(hint) {
+  if (!hint) return;
+  io.to(`agent:${hint.agentId}`).emit('guidance', hint);
+  io.emit('guidance_log', hint);
+}
+
+function emitRepositionGuidance(agentId = null) {
+  if (agentId) {
+    emitGuidance(hintForAgentId(state, agentId));
+    return;
+  }
+  for (const h of computeRepositionHints(state)) emitGuidance(h);
+}
+
+function applyPositionUpdate(agentId, zoneId, meta = {}) {
+  if (!setPosition(state, agentId, zoneId, meta)) return false;
+  broadcastState();
+  emitRepositionGuidance(agentId);
+  const payload = {
+    agentId,
+    zoneId,
+    lat: meta.lat ?? null,
+    lon: meta.lon ?? null,
+    accuracy: meta.accuracy ?? null,
+    distanceM: meta.distanceM ?? null,
+    source: meta.source || 'manual',
+    at: Date.now(),
+  };
+  logPosition(payload);
+  io.emit('position_log', payload);
+  return true;
+}
 
 // --- Émission d'un dispatch + armement de l'accusé -------------------------
 function emitDispatch(d) {
@@ -126,7 +172,15 @@ function onAckTimeout(dispatch) {
 }
 
 // --- Pipeline incident partagé (audio réel OU transcript simulé) -----------
-async function runIncident({ audio, transcript, langHint }) {
+let incidentQueue = Promise.resolve();
+
+async function runIncident(params) {
+  const run = incidentQueue.then(() => runIncidentInner(params));
+  incidentQueue = run.catch(() => {});
+  return run;
+}
+
+async function runIncidentInner({ audio, transcript, langHint }) {
   const incidentId = nextIncidentId(state);
   const res = await handleIncident({ state, audio, transcript, langHint, incidentId, now: Date.now() });
   commitAgents(state, res.nextState);
@@ -144,6 +198,7 @@ async function runIncident({ audio, transcript, langHint }) {
   io.emit('incident', res.incident); // console opérateur : feed + justification
   for (const d of res.dispatches) emitDispatch(d);
   for (const w of res.warnings) io.emit('coverage_warning', w);
+  emitRepositionGuidance();
   console.log(`[incident ${incidentId}] "${res.incident.transcript}" -> primary ${res.incident.primary_id}` +
     `, ${res.dispatches.filter((d) => d.role === 'backfill').length} backfill, ${res.warnings.length} warning` +
     ` (LLM: ${res.decision._source}${res.decision._model ? ` / ${res.decision._model}` : ''})`);
@@ -163,7 +218,35 @@ io.on('connection', (socket) => {
   });
 
   socket.on('position', ({ agentId, zoneId }) => {
-    if (setPosition(state, agentId, zoneId)) broadcastState();
+    applyPositionUpdate(agentId, zoneId, { source: 'manual' });
+  });
+
+  socket.on('gps_position', ({ agentId, lat, lon, accuracy }) => {
+    const hit = resolveGpsZone(state.zones, lat, lon, config.gps.maxDistanceM);
+    if (!hit) {
+      logPosition({ agentId, lat, lon, accuracy, source: 'gps_rejected' });
+      socket.emit('error_msg', {
+        message: `GPS hors parc (>${config.gps.maxDistanceM} m d'une zone). Renseigne PARK_LAT/PARK_LON sur le serveur.`,
+      });
+      return;
+    }
+    applyPositionUpdate(agentId, hit.zoneId, {
+      lat,
+      lon,
+      accuracy,
+      distanceM: hit.distanceM,
+      source: 'gps',
+    });
+  });
+
+  socket.on('scan_reposition', () => {
+    const hints = computeRepositionHints(state);
+    emitRepositionGuidance();
+    io.emit('guidance_log', {
+      agentId: null,
+      message: `Scan repositionnement : ${hints.length} suggestion(s) émise(s).`,
+      reason: 'scan',
+    });
   });
 
   socket.on('incident_audio', async ({ agentId, audio, ts, lang }) => {
@@ -229,7 +312,7 @@ assertCrusoeLiveWorkflowOrExit();
 
 server.listen(config.port, '0.0.0.0', () => {
   const proto = server instanceof https.Server ? 'https' : 'http';
-  console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}`);
+  console.log(`\n🎛  Weave coordinateur — ${proto}://localhost:${config.port}`);
   console.log(
     `   cerveau: ${config.mockCrusoe ? 'mock' : `Crusoe(${config.crusoe.model})`} · voix: ${config.mockGradium ? 'mock' : 'Gradium'}`,
   );

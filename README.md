@@ -1,11 +1,11 @@
-# 🎛️ CONDUCTOR
+# 🎛️ Weave
 
 > **Le contrôle aérien des secours humains.**
 > Agent de dispatch d'urgence pour environnements physiques (parcs, festivals, stades).
 > Hackathon **RAISE Summit 2026**, track **Crusoe**. Repo public, *new work only*.
 
 Un agent de terrain **parle** en langage naturel ("il est par terre au grand huit, il respire plus"),
-CONDUCTOR **comprend** l'incident (type, zone, compétence, urgence, n'importe quelle langue),
+Weave **comprend** l'incident (type, zone, compétence, urgence, n'importe quelle langue),
 envoie **UNE** alerte ciblée au plus proche **et** qualifié, et surtout **re-couvre automatiquement**
 le poste vacant (*backfill surplus-aware*) pour qu'aucune zone ne devienne aveugle.
 **Le backfill est le héros, pas le dispatch.**

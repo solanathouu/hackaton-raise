@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# nginx + Let's Encrypt pour CONDUCTOR sur Vultr.
+# nginx + Let's Encrypt pour Weave sur Vultr.
 # Usage (sur le VPS, en root ou sudo) :
 #   curl -fsSL .../setup-https-vultr.sh | bash
 #   ou : bash scripts/setup-https-vultr.sh [domaine]
