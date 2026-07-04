@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test",
+    "test": "node --test test/engine.selftest.js test/gradium.mock.test.js test/gradium.real.test.js",
+    "test:e2e": "node test/ws.e2e.js",
     "engine:selftest": "node test/engine.selftest.js",
     "certs": "bash scripts/make-certs.sh",
     "smoke:crusoe": "node scripts/smoke-crusoe.js",
