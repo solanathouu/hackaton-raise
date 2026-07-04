@@ -94,10 +94,34 @@ function annotate(state, agent, refZone, extra = {}) {
   };
 }
 
-// Pool PRIMARY : available + qualifié, trié par temps de trajet (le plus proche d'abord).
+// Contraintes opérateur apprises (F8) : parse déterministe du rule_text -> agents protégés,
+// que le moteur ne ponctionne JAMAIS (ni primary, ni backfill). Reconnaît les ids (A1, R2),
+// les noms (Marco, Léa) et les noms de zone (protège tous les agents présents dans la zone).
+export function protectedAgentIds(state) {
+  const protectedSet = new Set();
+  const applied = [];
+  for (const c of state.constraints || []) {
+    const txt = norm(c.rule_text);
+    if (!txt) continue;
+    let matched = false;
+    for (const a of state.agents) {
+      const idHit = new RegExp(`(^|[^a-z0-9])${a.id.toLowerCase()}([^a-z0-9]|$)`).test(txt);
+      if (idHit || (a.name && txt.includes(norm(a.name)))) { protectedSet.add(a.id); matched = true; }
+    }
+    for (const z of state.zones) {
+      if (z.name && txt.includes(norm(z.name)))
+        for (const a of state.agents) if (a.current_zone === z.id) { protectedSet.add(a.id); matched = true; }
+    }
+    if (matched) applied.push(c.rule_text);
+  }
+  return { protectedSet, applied };
+}
+
+// Pool PRIMARY : available + qualifié + non protégé, trié par temps de trajet (le plus proche d'abord).
 // On NE filtre PAS "safe to pull" ici : une urgence part au plus proche, le trou est backfillé.
 export function candidatesPrimary(state, incidentZoneId, skillsNeeded) {
   const z = zoneById(state, incidentZoneId);
+  const { protectedSet } = protectedAgentIds(state);
   const relevant =
     skillsNeeded && skillsNeeded.length
       ? skillsNeeded
@@ -105,18 +129,19 @@ export function candidatesPrimary(state, incidentZoneId, skillsNeeded) {
       ? z.required_skills
       : EMERGENCY_SKILLS;
   return state.agents
-    .filter((a) => a.status === 'available')
+    .filter((a) => a.status === 'available' && !protectedSet.has(a.id))
     .filter((a) => (a.skills || []).some((sk) => relevant.includes(sk)))
     .map((a) => annotate(state, a, incidentZoneId, { safe: safeToPull(state, a) }))
     .sort((x, y) => (x.travel_time_s ?? 1e9) - (y.travel_time_s ?? 1e9) || x.id.localeCompare(y.id));
 }
 
-// Pool BACKFILL pour une zone : safe-to-pull, restaure les required_skills, trié par trajet.
+// Pool BACKFILL : safe-to-pull + non protégé, restaure les required_skills, trié par trajet.
 export function candidatesBackfill(state, targetZoneId, excludeIds = []) {
   const z = zoneById(state, targetZoneId);
+  const { protectedSet } = protectedAgentIds(state);
   const need = z?.required_skills || [];
   return state.agents
-    .filter((a) => a.status === 'available' && !excludeIds.includes(a.id))
+    .filter((a) => a.status === 'available' && !excludeIds.includes(a.id) && !protectedSet.has(a.id))
     .filter((a) => a.current_zone !== targetZoneId) // déjà sur zone = inutile
     .filter((a) => safeToPull(state, a))
     .filter((a) => need.length === 0 || (a.skills || []).some((sk) => need.includes(sk)))
@@ -256,16 +281,18 @@ export function applyDecision(decision, state, opts = {}) {
   const incidentZone = decision.zone_id;
   const zoneSkills = zoneById(sim, incidentZone)?.required_skills || [];
   const skillsNeeded = decision.skills_needed?.length ? decision.skills_needed : zoneSkills;
+  const { protectedSet, applied: constraintsApplied } = protectedAgentIds(sim); // F8
 
   const assignments = [];
   const warnings = [];
   const ctx = { used: [], mkAssignment };
 
-  // 1) PRIMARY — valide le choix LLM, sinon répare (plus proche qualifié).
+  // 1) PRIMARY — valide le choix LLM, sinon répare (plus proche qualifié, non protégé).
   let primary = agentById(sim, decision.primary_id);
   const primaryOk =
     primary &&
     primary.status === 'available' &&
+    !protectedSet.has(primary.id) &&
     (skillsNeeded.length === 0 || (primary.skills || []).some((sk) => skillsNeeded.includes(sk)));
   if (!primaryOk) {
     const repaired = candidatesPrimary(sim, incidentZone, skillsNeeded)[0];
@@ -276,7 +303,7 @@ export function applyDecision(decision, state, opts = {}) {
       assignments: [],
       warnings: [{ zoneId: incidentZone, etaSec: 0, message: `Aucun répondant qualifié disponible pour ${incidentZone}.` }],
       nextState: state,
-      incident: buildIncident(decision, incidentId, null, [], warnings, opts),
+      incident: buildIncident(decision, incidentId, null, [], warnings, opts, constraintsApplied),
       repaired: true,
     };
   }
@@ -291,6 +318,7 @@ export function applyDecision(decision, state, opts = {}) {
     const a = agentById(sim, bf.agent_id);
     const target = bf.target_zone;
     if (!a || a.status !== 'available' || ctx.used.includes(a.id)) continue;
+    if (protectedSet.has(a.id)) continue; // F8 : agent protégé par l'opérateur, jamais ponctionné
     if (!safeToPull(sim, a)) continue; // le moteur refuse tout backfill qui casserait une autre zone
     const need = zoneById(sim, target)?.required_skills || [];
     if (need.length && !(a.skills || []).some((sk) => need.includes(sk))) continue;
@@ -316,7 +344,7 @@ export function applyDecision(decision, state, opts = {}) {
     assignments,
     warnings,
     nextState: commit(state, sim),
-    incident: buildIncident(decision, incidentId, primary.id, assignments, warnings, opts),
+    incident: buildIncident(decision, incidentId, primary.id, assignments, warnings, opts, constraintsApplied),
     repaired: primaryRepaired,
   };
 }
@@ -327,7 +355,7 @@ function commit(state, sim) {
   return { ...state, agents: state.agents.map((a) => ({ ...a, status: byId.get(a.id)?.status ?? a.status })) };
 }
 
-function buildIncident(decision, incidentId, primaryId, assignments, warnings, opts) {
+function buildIncident(decision, incidentId, primaryId, assignments, warnings, opts, constraintsApplied = []) {
   return {
     id: incidentId,
     transcript: decision._transcript || null,
@@ -340,6 +368,9 @@ function buildIncident(decision, incidentId, primaryId, assignments, warnings, o
     backfills: assignments.filter((a) => a.role === 'backfill').map((a) => ({ agent_id: a.agent_id, target_zone: a.target_zone })),
     warning: warnings[0]?.message || decision.warning || null,
     justification: decision.justification || null,
+    constraints_applied: constraintsApplied,
+    source: decision._source || null,
+    degraded: String(decision._source || '').startsWith('fallback'),
     status: 'open',
     created_at: opts.now ?? null,
   };

@@ -105,6 +105,25 @@ for (let i = 0; i < 10 && buf.coverage_warning.length === 0; i++) {
 ok(buf.coverage_warning.length > 0, `coverage_warning émis après dépletion [${buf.coverage_warning.length} warning(s)]`);
 if (buf.coverage_warning[0]) console.log(`     → "${buf.coverage_warning[0].message}"`);
 
+// --- F8 : override "protège Marco" appris -> l'incident suivant ne ponctionne plus Marco ---
+console.log('\n[F8] Override appris via WS -> incident suivant respecte la contrainte');
+await resetAndClear();
+op.emit('operator_override', { incidentId: 'standing', newAgentId: null, reason: 'protège Marco' });
+await sleep(200);
+clear();
+op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'backfill'), 3000);
+{
+  const back = buf.dispatch_log.find((d) => d.role === 'backfill');
+  ok(back && back.agentId !== 'A1', `backfill n'est PAS Marco (A1) [reçu ${back?.agentId}]`);
+  ok(buf.incident[0]?.constraints_applied?.includes('protège Marco'), 'incident.constraints_applied propagé au client');
+}
+
+// --- Badge résilience : en mock, source déterministe (non dégradé) ---
+console.log('\n[Résilience] le champ source/degraded arrive au client');
+ok(buf.incident[0]?.source === 'mock:deterministic', `incident.source = mock:deterministic [reçu ${buf.incident[0]?.source}]`);
+ok(buf.incident[0]?.degraded === false, 'degraded=false en mock (vrai fallback = amber au pitch)');
+
 console.log(`\n===== E2E ${pass} OK / ${fail} KO =====\n`);
 op.close();
 process.exit(fail === 0 ? 0 : 1);

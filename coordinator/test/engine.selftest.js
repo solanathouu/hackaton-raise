@@ -4,6 +4,7 @@ import { loadSeed } from '../src/config.js';
 import { buildState } from '../src/state.js';
 import {
   buildSnapshot, applyDecision, detectZone, travelTime, headcount, surplus, cascadeBackfill,
+  candidatesBackfill, protectedAgentIds,
 } from '../src/engine.js';
 
 let pass = 0, fail = 0;
@@ -118,6 +119,55 @@ console.log('\n[Invariant] Une Decision LLM ne peut jamais laisser une zone sous
   const dec = { zone_id: 'Z8', skills_needed: ['RCP'], severity: 5, primary_id: 'ZZZ', backfills: [{ agent_id: 'ZZZ', target_zone: 'Z8' }], warning: null };
   const r = applyDecision(dec, s, { incidentId: 'inc_inv' });
   ok(r.assignments.some((a) => a.role === 'primary'), 'primary réparé malgré un id LLM invalide');
+}
+
+console.log('\n[F8a] Override appris (protège un agent) : le moteur ne ponctionne PLUS Marco');
+{
+  const s = fresh();
+  s.constraints.push({ id: 'c1', scope: 'global', rule_text: 'protège Marco', source_override: 'inc_x' });
+  const { protectedSet, applied } = protectedAgentIds(s);
+  ok(protectedSet.has('A1'), 'Marco (A1) reconnu comme protégé');
+  ok(applied.includes('protège Marco'), 'contrainte listée dans applied');
+  // LLM propose quand même Marco en backfill -> le moteur DOIT le refuser et réparer avec Ana.
+  const dec = { incident_type: 'arret_cardiaque', zone_id: 'Z8', skills_needed: ['RCP'], severity: 5, primary_id: 'A7', backfills: [{ agent_id: 'A1', target_zone: 'Z8' }], warning: null };
+  const r = applyDecision(dec, s, { incidentId: 'inc_f8a' });
+  const bf = r.assignments.find((a) => a.role === 'backfill');
+  ok(bf && bf.agent_id !== 'A1', `backfill n'est PAS Marco [reçu ${bf?.agent_id}]`);
+  eq(bf?.agent_id, 'A2', 'backfill = Ana (A2), prochain RCP safe non protégé');
+  ok(r.incident.constraints_applied.includes('protège Marco'), 'incident.constraints_applied renseigné');
+}
+
+console.log('\n[F8b] Contrainte par ZONE : "protège le Grand Huit" protège tous les agents de Z2');
+{
+  const s = fresh();
+  s.constraints.push({ id: 'c2', scope: 'zone', rule_text: 'protège le Grand Huit', source_override: 'inc_y' });
+  const { protectedSet } = protectedAgentIds(s);
+  ok(['A1', 'A2', 'A3'].every((id) => protectedSet.has(id)), 'Marco+Ana+Karim (Z2) protégés');
+  const bf = candidatesBackfill(s, 'Z8');
+  ok(!bf.some((c) => ['A1', 'A2'].includes(c.id)), 'aucun agent de Z2 dans le pool backfill Z8');
+  eq(bf[0]?.id, 'A4', 'backfill Z8 tombe sur Léa (A4, Z5 surplus)');
+}
+
+console.log('\n[H1] Surplus épuisé : le backfill tombe sur un RÉSERVISTE, sans warning');
+{
+  const s = fresh();
+  for (const id of ['A1', 'A4']) s.agents.find((a) => a.id === id).status = 'responding'; // vide surplus Z2 et Z5
+  const dec = { incident_type: 'arret_cardiaque', zone_id: 'Z8', skills_needed: ['RCP'], severity: 5, primary_id: 'A7', backfills: [], warning: null };
+  const r = applyDecision(dec, s, { incidentId: 'inc_h1' });
+  const bf = r.assignments.find((a) => a.role === 'backfill');
+  ok(bf && ['R1', 'R2'].includes(bf.agent_id), `backfill = réserviste [reçu ${bf?.agent_id}]`);
+  ok(r.warnings.length === 0, 'aucun warning (le réserviste couvre proprement)');
+}
+
+console.log('\n[H2] Primary protégé : le moteur choisit un autre répondant');
+{
+  const s = fresh();
+  s.constraints.push({ id: 'c3', scope: 'agent', rule_text: 'ne bouge pas Hugo', source_override: 'inc_z' });
+  const dec = { incident_type: 'arret_cardiaque', zone_id: 'Z8', skills_needed: ['RCP'], severity: 5, primary_id: 'A7', backfills: [], warning: null };
+  const r = applyDecision(dec, s, { incidentId: 'inc_h2' });
+  const prim = r.assignments.find((a) => a.role === 'primary');
+  ok(prim && prim.agent_id !== 'A7', `primary n'est PAS Hugo (protégé) [reçu ${prim?.agent_id}]`);
+  eq(prim?.agent_id, 'A1', 'primary = Marco (RCP le plus proche non protégé)');
 }
 
 console.log(`\n===== ${pass} OK / ${fail} KO =====\n`);
