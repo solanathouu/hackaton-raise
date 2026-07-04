@@ -18,6 +18,7 @@ Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (
 | Console opérateur (`app/public/operator.html` : alertes F5 Accepter/Réassigner + override + densité) | ✅ |
 | **Simulateur 3D v2** (`simulator/`, servi `/sim`, vue live read-only : parc volumétrique animé, agents qui se déplacent le long des allées, balises incident ∝ sévérité, badges modèle/dégradé, feed justification Crusoe, demo offline `?mode=demo`, verify:visual cross-platform) | ✅ (réécrit + vérifié live 2026-07-04) |
 | Capteur densité BLE + simulateur d'échelle (bonus, F5 proactif) | ✅ |
+| **Détecteur densité caméra** (`crowd-density/`, PR#4 Prakash mergée + branchée : `/crowd`, COCO-SSD vendoré offline, upload vidéo → niveau → émission `crowd_density` → heat 3D + advisory F5) | ✅ (intégré + vérifié 2026-07-05) |
 | Robustesse P4 (file TTS + retry-1008, témoins text-only, zone-prime) | ✅ |
 | **Latence mesurée** (~6 s bouton / ~8-9 s micro) · CA mkcert laptop + cert IP LAN OK · 3 surfaces servies live | ✅ (mesuré 2026-07-04, voir `docs/repetition-runbook.md`) |
 | **Répétitions physiques + vidéo 1 min + trust CA sur téléphones** | ❌ **à faire (humain) — le vrai reste** |
@@ -26,6 +27,7 @@ Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (
 - `/index.html` — app staff (téléphones) : PTT + dispatch vocal + accusé + carte.
 - `/operator.html` — console opérateur (PC/tablette) : alertes F5, override, journal.
 - `/sim` — simulateur 3D **live** (grand écran). `?mode=demo` = scripté offline.
+- `/crowd` — détecteur densité caméra (upload footage → niveau → signal `crowd_density` au cerveau).
 
 ## Comment lancer / tester
 ```bash

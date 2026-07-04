@@ -3,19 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CONDUCTOR Crowd Density</title>
+    <title>CONDUCTOR · Densité caméra</title>
     <link rel="stylesheet" href="./src/styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <!-- Vendored (offline-first : la démo tourne sans internet, poids du modèle inclus) -->
+    <script src="./vendor/tf.min.js"></script>
+    <script src="./vendor/coco-ssd.min.js"></script>
+    <!-- Présent quand servi par le coordinateur (/crowd) ; absent en standalone -> liaison cerveau désactivée -->
+    <script src="/socket.io/socket.io.js"></script>
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">CONDUCTOR vision signal</p>
-          <h1>Crowd Density</h1>
+          <p class="eyebrow">CONDUCTOR · signal vision</p>
+          <h1>Densité caméra</h1>
         </div>
-        <span id="modelStatus" class="status">model loading</span>
+        <span id="modelStatus" class="status">chargement du modèle</span>
       </header>
 
       <section class="workspace">
@@ -66,6 +69,15 @@
               <span>Method</span>
               <strong id="methodMetric">-</strong>
             </div>
+          </div>
+
+          <!-- Liaison cerveau : publie le signal sur le canal crowd_density (comme le capteur BLE).
+               Le coordinateur déclenche une advisory F5 si la zone n'a pas de marge, et la zone
+               chauffe sur la carte staff + la vue 3D. -->
+          <div class="brain-panel">
+            <select id="zoneSelect"><option value="">Zone…</option></select>
+            <button class="send" id="sendBrain" type="button" disabled>Envoyer au cerveau</button>
+            <span class="brain-note" id="brainNote">Analyse d'abord une vidéo, choisis la zone filmée, puis envoie le signal.</span>
           </div>
         </div>
       </section>

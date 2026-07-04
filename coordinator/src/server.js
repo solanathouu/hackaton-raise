@@ -44,6 +44,7 @@ app.use(express.static(resolve(ROOT, '../app/public')));               // PWA st
 app.use('/mock', express.static(resolve(ROOT, '../app/public/mock'))); // /mock/tts-sample.mp3
 app.use('/tts', express.static(resolve(ROOT, 'tts-cache')));           // TTS générés
 app.use('/sim', express.static(resolve(ROOT, '../simulator/dist')));   // simulateur 3D (vue live), build Vite base /sim/
+app.use('/crowd', express.static(resolve(ROOT, '../crowd-density')));  // détecteur densité caméra (PR#4 Prakash, branché crowd_density)
 app.get('/health', (_req, res) => {
   const crusoeLive = validateCrusoeLiveWorkflow();
   res.json({

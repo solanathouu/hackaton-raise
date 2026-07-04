@@ -14,21 +14,31 @@ Original build request:
 
 ## Run
 
+Servi par le coordinateur (recommandé, liaison cerveau active) :
+
 ```bash
-cd crowd-density
-python -m http.server 5177
+cd coordinator && npm start
+# -> https://localhost:3000/crowd (ou https://<IP-LAN>:3000/crowd)
 ```
 
-Open `http://localhost:5177`.
+Standalone (sans liaison cerveau) :
 
-The page loads TensorFlow.js COCO-SSD from a CDN, then runs a stronger post-processor for overhead CCTV footage:
+```bash
+cd crowd-density
+python -m http.server 5177   # http://localhost:5177
+```
 
-- full-frame plus overlapping tiled detection so small people are easier to catch
-- lower tile threshold for distant subjects
-- sanity filters that reject huge plaza-sized false person boxes
-- non-max suppression and container-box removal
+TensorFlow.js + COCO-SSD + les poids du modèle sont VENDORÉS (`vendor/`, ~19 Mo) :
+la page fonctionne **sans internet** (contrainte démo hotspot). Fallback CDN si le vendor
+manque, fallback heuristique si aucun modèle ne charge.
 
-If the model cannot load, it falls back to a visual-complexity estimate and marks the result as heuristic.
+## Intégration cerveau (faite)
+
+Après analyse : choisir la zone filmée -> « Envoyer au cerveau » publie sur le canal
+`crowd_density` (Contrat A, identique au capteur BLE) : `{ zoneId, deviceCount: pic de
+personnes, ratio: Low 0.8 / Moderate 1.2 / High 1.7 / Critical 2.3, source: "camera" }`.
+Le coordinateur rebroadcast (chips staff/console + heat 3D sur /sim) et lève une advisory
+F5 proactive (« Pré-positionner un renfort ? ») si ratio >= 1.5 sur une zone sans marge.
 
 ## Output
 

@@ -35,12 +35,58 @@ let selectedFile = null;
 let selectedUrl = null;
 let detector = null;
 let detectorReady = false;
+let lastSummary = null;
+
+// --- Liaison cerveau ---------------------------------------------------------
+// Publie le résultat sur le canal `crowd_density` (Contrat A, identique au capteur BLE) :
+// { zoneId, deviceCount, ratio }. Le coordinateur rebroadcast (heat 3D, chips staff/console)
+// et lève une advisory F5 si ratio >= 1.5 sur une zone sans marge de couverture.
+const LEVEL_RATIO = { Low: 0.8, Moderate: 1.2, High: 1.7, Critical: 2.3 };
+const brain = { socket: null, els: {} };
 
 init();
 
 function init() {
   bindControls();
   loadDetector();
+  initBrainLink();
+}
+
+async function initBrainLink() {
+  brain.els.zone = document.querySelector("#zoneSelect");
+  brain.els.send = document.querySelector("#sendBrain");
+  brain.els.note = document.querySelector("#brainNote");
+  if (!globalThis.io) {
+    brain.els.note.textContent = "Hors coordinateur (page standalone) : liaison cerveau désactivée.";
+    return;
+  }
+  try {
+    const state = await fetch("/api/state").then((r) => r.json());
+    brain.els.zone.innerHTML = '<option value="">Zone…</option>' +
+      state.zones.map((z) => `<option value="${z.id}">${z.name}</option>`).join("");
+  } catch {
+    brain.els.note.textContent = "Coordinateur injoignable : liaison cerveau désactivée.";
+    return;
+  }
+  brain.socket = globalThis.io({ transports: ["websocket"] });
+  const refresh = () => { brain.els.send.disabled = !(lastSummary && brain.els.zone.value); };
+  brain.els.zone.addEventListener("change", refresh);
+  brain.refresh = refresh;
+  brain.els.send.addEventListener("click", () => {
+    if (!lastSummary || !brain.els.zone.value) return;
+    const payload = {
+      zoneId: brain.els.zone.value,
+      deviceCount: Math.max(1, lastSummary.maxPeople),
+      ratio: LEVEL_RATIO[lastSummary.level] ?? 1,
+      source: "camera",
+    };
+    brain.socket.emit("crowd_density", payload);
+    brain.els.note.textContent = `Signal envoyé : ${lastSummary.level} (ratio ${payload.ratio}) sur ${brain.els.zone.selectedOptions[0].textContent}.` +
+      (payload.ratio >= 1.5 ? " Advisory possible si la zone n'a pas de marge." : "");
+    brain.els.note.classList.add("ok");
+    brain.els.send.disabled = true;
+    setTimeout(() => { brain.els.note.classList.remove("ok"); brain.refresh?.(); }, 2500);
+  });
 }
 
 function bindControls() {
@@ -77,12 +123,18 @@ function bindControls() {
 async function loadDetector() {
   try {
     if (!globalThis.cocoSsd) throw new Error("COCO-SSD script unavailable");
-    detector = await globalThis.cocoSsd.load({ base: "lite_mobilenet_v2" });
+    // Poids vendorés (offline-first) ; fallback CDN si le vendor manque (ancien déploiement).
+    try {
+      detector = await globalThis.cocoSsd.load({ modelUrl: new URL("../vendor/model/model.json", import.meta.url).href });
+    } catch (localError) {
+      console.warn("[crowd-density] modèle local indisponible, tentative CDN", localError);
+      detector = await globalThis.cocoSsd.load({ base: "lite_mobilenet_v2" });
+    }
     detectorReady = true;
-    setStatus("strong detector ready", "ready");
+    setStatus("détecteur prêt", "ready");
   } catch (error) {
     detectorReady = false;
-    setStatus("heuristic mode", "warn");
+    setStatus("mode heuristique", "warn");
     console.warn("[crowd-density] detector unavailable", error);
   }
 }
@@ -224,6 +276,8 @@ async function detectPeopleStrong(canvas, threshold) {
 }
 
 function renderSummary(summary) {
+  lastSummary = summary;
+  brain.refresh?.();
   els.densityLevel.textContent = summary.level;
   els.densityLevel.className = summary.level.toLowerCase();
   els.densityReason.textContent = summary.reason;
@@ -339,13 +393,13 @@ function drawDetections(canvas, detections) {
 
   for (const detection of detections) {
     const [x, y, width, height] = detection.bbox;
-    ctx.strokeStyle = "#0d7b63";
-    ctx.fillStyle = "rgba(13, 123, 99, 0.14)";
+    ctx.strokeStyle = "#4cc2ff";
+    ctx.fillStyle = "rgba(76, 194, 255, 0.14)";
     ctx.fillRect(x, y, width, height);
     ctx.strokeRect(x, y, width, height);
     const label = `${Math.round(detection.score * 100)}%`;
     const labelWidth = ctx.measureText(label).width + 10;
-    ctx.fillStyle = "#0d7b63";
+    ctx.fillStyle = "#2b90c9";
     ctx.fillRect(x, Math.max(0, y - 24), labelWidth, 22);
     ctx.fillStyle = "#fff";
     ctx.fillText(label, x + 5, Math.max(0, y - 21));
