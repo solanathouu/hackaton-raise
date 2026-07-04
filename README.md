@@ -80,20 +80,21 @@ coordinator/
   src/
     engine.js         ⭐ moteur cascade surplus-aware (PUR) — buildSnapshot/applyDecision/cascadeBackfill
     agent.js          orchestration du pipeline d'incident
-    server.js         coordinateur temps réel (Socket.io + HTTPS + boucle d'accusé)
+    server.js         coordinateur temps réel (Socket.io + HTTPS + accusé + API REST + replay reconnexion)
     state.js          store d'état vivant + sérialisation
+    persistence.js    log SQLite (node:sqlite NATIF, zéro compilation) — dégrade en no-op si absent
     prompt.js         prompt système Crusoe (PRD §12)
     integrations/
       crusoe.js       decide() — Crusoe (OpenAI-compat) + fallback déterministe
-      gradium.js      transcribe()/speak() — endpoints RÉELS (api.gradium.ai, x-api-key)
-  scripts/       make-certs.sh · smoke-crusoe.js · smoke-gradium.js
-  test/          engine.selftest.js · ws.e2e.js
+      gradium.js      transcribe()/speak() — endpoints RÉELS + fallback whisper.cpp (P3)
+  scripts/       make-certs.sh · smoke-crusoe.js · smoke-gradium.js · compare-models.js · smoke-pipeline.js
+  test/          engine.selftest.js · ws.e2e.js · persistence.test.js
 app/public/      PWA staff (harnais de test fonctionnel — P4 étend/remplace)
 ```
 
 ## Répartition (5) — voir `docs/conductor-team-kickoff.md`
 - **Lead (Nathan)** — moteur (`engine.js`) + coordinateur + cap. ✅ *chemin critique livré et testé.*
-- **P2** — coordinateur/WS : base posée dans `server.js`, à étoffer (persistance, edge cases).
+- **P2** — coordinateur/WS : apports **réconciliés dans `server.js`** (log SQLite, API REST de démo, replay reconnexion) — voir note ci-dessous.
 - **P3** — Gradium : interface + endpoints réels câblés dans `gradium.js`, à finaliser (voice_ids, S2S live).
 - **P4** — PWA : `app/public/index.html` fonctionne (état, PTT, dispatch, accusé, carte à ajouter — Leaflet).
 - **P5** — Crusoe : `prompt.js` + `crusoe.js` prêts ; brancher la vraie clé + console opérateur.
@@ -104,6 +105,10 @@ app/public/      PWA staff (harnais de test fonctionnel — P4 étend/remplace)
 - [x] HTTPS mkcert (certs générés ; `mkcert -install` = à faire toi, sudo)
 - [x] `USE_MOCKS=true` par défaut, pipeline offline de bout en bout
 - [x] **Crusoe branché** (clé posée, DeepSeek V4 Flash) — pipeline réel S1/S2/S4 validé, **gate H+7 ✅**
+- [x] **Robustesse P2 réconciliée** : log SQLite (natif), API REST de démo (curl), replay des dispatchs à la reconnexion — moteur **47/47** · e2e **22/22** · persist **2/2**
 - [ ] **Gradium** : clé à récupérer (coupon `RAISE-2026`) → `MOCK_GRADIUM=false` + voice_ids + `npm run smoke:gradium`
+
+### Note réconciliation (branche `codex/backend`)
+La branche `codex/backend` est un **2ᵉ coordinateur parallèle** (sous `src/p2/`) : bon code, mais **non intégré** au vrai Crusoe/Gradium, avec un défaut modèle obsolète et `better-sqlite3` qui **ne compile pas sur Node 26**. **Ne pas la merger.** Ses 3 vraies valeurs (SQLite, API REST, reconnexion) ont été **portées** dans le coordinateur intégré via `node:sqlite` (zéro compilation). Détail : `curl -X POST http://localhost:3000/api/demo/sim_incident -d '{"scenario":"S2"}' -H 'content-type: application/json'`.
 
 Spec complète : `docs/conductor-PRD.md`. Contexte : `docs/conductor-context-brief.md`. Kit équipe : `docs/conductor-team-kickoff.md`.

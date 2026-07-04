@@ -11,3 +11,8 @@ tts-cache/
 # playwright / captures
 .playwright-mcp/
 *.png
+
+# base de log SQLite
+*.sqlite
+*.sqlite-*
+coordinator/data/*.sqlite

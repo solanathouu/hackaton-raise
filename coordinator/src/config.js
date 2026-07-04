@@ -27,6 +27,11 @@ export const config = {
   },
   gradium: { apiKey: process.env.GRADIUM_API_KEY || '' },
   tls: { cert: process.env.TLS_CERT || 'certs/cert.pem', key: process.env.TLS_KEY || 'certs/key.pem' },
+  // Log SQLite (node:sqlite natif). Vide/désactivable via PERSIST=false.
+  persist: String(process.env.PERSIST ?? 'true').toLowerCase() !== 'false',
+  sqlitePath: process.env.SQLITE_PATH
+    ? resolve(process.env.SQLITE_PATH)
+    : resolve(__dirname, '../data/conductor.sqlite'),
 };
 
 export function loadSeed() {

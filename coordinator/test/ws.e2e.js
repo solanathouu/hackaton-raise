@@ -3,9 +3,13 @@
 //   node test/ws.e2e.js
 import { io } from 'socket.io-client';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // certs self-signed en test (fetch + ws)
+
 const PORT = process.env.PORT || 3000;
 const PROTO = process.env.E2E_PROTO || 'https';
 const URL = `${PROTO}://localhost:${PORT}`;
+const newSocket = () => io(URL, { rejectUnauthorized: false, transports: ['websocket'], forceNew: true });
+const onceConnected = (s) => new Promise((res, rej) => { s.on('connect', res); setTimeout(() => rej(new Error('connexion KO')), 4000); });
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log(`  ✓ ${m}`); } else { fail++; console.log(`  ✗ ${m}`); } };
@@ -123,6 +127,38 @@ await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.ro
 console.log('\n[Résilience] le champ source/degraded arrive au client');
 ok(buf.incident[0]?.source === 'mock:deterministic', `incident.source = mock:deterministic [reçu ${buf.incident[0]?.source}]`);
 ok(buf.incident[0]?.degraded === false, 'degraded=false en mock (vrai fallback = amber au pitch)');
+
+// --- API REST de démo (apport P2, réconcilié) ---
+console.log('\n[REST] API de démo curl-able + log SQLite');
+{
+  await fetch(`${URL}/api/demo/reset`, { method: 'POST' });
+  const r = await fetch(`${URL}/api/demo/sim_incident`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scenario: 'S2' }) });
+  const j = await r.json();
+  ok(r.ok && j.ok, 'POST /api/demo/sim_incident → 200');
+  ok(j.incident?.primary_id === 'A7', `incident REST primary = A7 [reçu ${j.incident?.primary_id}]`);
+  const health = await (await fetch(`${URL}/health`)).json();
+  const inc = await (await fetch(`${URL}/api/incidents`)).json();
+  ok(!health.persist || inc.incidents.length >= 1, `GET /api/incidents (log SQLite=${health.persist}) → ${inc.incidents.length} incident(s)`);
+}
+
+// --- Replay des dispatchs à la reconnexion (apport P2, réconcilié) ---
+console.log('\n[Reconnect] dispatch non acquitté REJOUÉ au retour réseau');
+{
+  op.emit('reset'); await sleep(150);
+  const ag = newSocket(); await onceConnected(ag);
+  const got1 = []; ag.on('dispatch', (d) => got1.push(d));
+  ag.emit('hello', { agentId: 'A7' }); await sleep(120);
+  op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
+  await waitFor(() => got1.some((d) => d.role === 'primary' && d.agentId === 'A7'), 3000);
+  ok(got1.some((d) => d.agentId === 'A7'), 'agent A7 a reçu son dispatch (1re fois)');
+  ag.disconnect(); // perte réseau, SANS accuser
+  const ag2 = newSocket(); await onceConnected(ag2);
+  const got2 = []; ag2.on('dispatch', (d) => got2.push(d));
+  ag2.emit('hello', { agentId: 'A7' });
+  const replayed = await waitFor(() => got2.some((d) => d.role === 'primary'), 1200);
+  ok(replayed, 'dispatch rejoué à la reconnexion — incident jamais perdu');
+  ag2.close();
+}
 
 console.log(`\n===== E2E ${pass} OK / ${fail} KO =====\n`);
 op.close();
