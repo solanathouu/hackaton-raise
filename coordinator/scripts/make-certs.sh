@@ -9,8 +9,9 @@ if ! command -v mkcert >/dev/null 2>&1; then
   exit 1
 fi
 
-# CA locale (idempotent)
-mkcert -install
+# CA locale : ne bloque pas si déjà trustée (le -install exige sudo/terminal ;
+# après changement de réseau on ne régénère que le cert feuille, la CA ne change pas).
+mkcert -install 2>/dev/null || echo "⚠ CA non (ré)installée — OK si déjà trustée, sinon lance à la main : sudo mkcert -install"
 
 # Détection de l'IP LAN (macOS en0/en1, sinon fallback)
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo '')"

@@ -42,7 +42,14 @@ Sur le **même WiFi/hotspot** que le laptop :
 - 💻 PC (console opérateur) : **`https://192.168.8.91:3000/operator.html`**
 - 🖥️ Grand écran (3D live) : **`https://192.168.8.91:3000/sim`** (`?mode=demo` = scripté offline de secours)
 
-> ⚠ Si le réseau de la démo donne une **autre IP** que `192.168.8.91` : relancer `npm run certs` **sur ce réseau** (régénère le cert feuille avec la nouvelle IP ; la CA est déjà installée/trustée). Les téléphones qui trustent déjà la CA n'ont **rien à refaire**.
+> ⚠ **Changement de réseau = changement d'IP** (vécu le 05/07 : 192.168.8.91 → 192.168.1.133, pages en
+> chargement infini). Procédure en 3 commandes, sur le nouveau réseau :
+> ```bash
+> cd coordinator
+> npm run certs      # régénère le cert feuille avec la nouvelle IP (la CA trustée ne change pas)
+> npm start          # la ligne « LAN (en0) : https://<IP>:3000 » donne la nouvelle URL à ouvrir
+> ```
+> Les téléphones qui trustent déjà la CA n'ont **rien à refaire** (juste la nouvelle URL).
 
 ### Truster la CA mkcert sur les téléphones (le seul reste de l'étape 1 — À FAIRE UNE FOIS)
 Fichier CA : `/Users/nathan/Library/Application Support/mkcert/rootCA.pem`
