@@ -149,6 +149,22 @@ export function candidatesBackfill(state, targetZoneId, excludeIds = []) {
     .sort((x, y) => (x.travel_time_s ?? 1e9) - (y.travel_time_s ?? 1e9) || x.id.localeCompare(y.id));
 }
 
+/** Agents qualifiés aux alentours à prévenir (pas le primary ni les backfills). */
+export function candidatesNearbyNotice(state, incidentZoneId, skillsNeeded, excludeIds = []) {
+  const need = skillsNeeded?.length ? skillsNeeded : zoneById(state, incidentZoneId)?.required_skills || [];
+  const excl = new Set(excludeIds);
+  const hasSkill = (a) => need.length === 0 || (a.skills || []).some((sk) => need.includes(sk));
+  const out = new Map();
+  for (const a of state.agents) {
+    if (a.status !== 'available' || excl.has(a.id) || !hasSkill(a)) continue;
+    if (a.current_zone === incidentZoneId) out.set(a.id, a);
+  }
+  for (const c of candidatesPrimary(state, incidentZoneId, need)) {
+    if (!excl.has(c.id)) out.set(c.id, agentById(state, c.id) || c);
+  }
+  return [...out.values()].filter(Boolean);
+}
+
 // ---------------------------------------------------------------------------
 // Snapshot (Contrat B) — passé tel quel au LLM.
 // ---------------------------------------------------------------------------
@@ -367,9 +383,12 @@ function buildIncident(decision, incidentId, primaryId, assignments, warnings, o
     primary_id: primaryId,
     backfills: assignments.filter((a) => a.role === 'backfill').map((a) => ({ agent_id: a.agent_id, target_zone: a.target_zone })),
     warning: warnings[0]?.message || decision.warning || null,
+    nearby_notice: decision.nearby_notice || null,
+    transcript_analysis: decision.transcript_analysis || null,
     justification: decision.justification || null,
     constraints_applied: constraintsApplied,
     source: decision._source || null,
+    model: decision._model || null,
     degraded: String(decision._source || '').startsWith('fallback'),
     status: 'open',
     created_at: opts.now ?? null,

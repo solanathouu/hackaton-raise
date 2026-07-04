@@ -4,8 +4,10 @@
 import { io } from 'socket.io-client';
 
 const PORT = process.env.PORT || 3000;
-const PROTO = process.env.E2E_PROTO || 'https';
-const URL = `${PROTO}://localhost:${PORT}`;
+const HOST = process.env.E2E_HOST || '127.0.0.1';
+const PROTO = process.env.E2E_PROTO || 'http';
+const URL = `${PROTO}://${HOST}:${PORT}`;
+const LLM_WAIT_MS = Number(process.env.E2E_LLM_WAIT_MS || 12000);
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log(`  ✓ ${m}`); } else { fail++; console.log(`  ✗ ${m}`); } };
@@ -39,7 +41,7 @@ const resetAndClear = async () => { op.emit('reset'); await sleep(150); clear();
 console.log('\n[S2] Cascade Z8 : dispatch primary + backfill via WS');
 await resetAndClear();
 op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 2);
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 2, LLM_WAIT_MS);
 {
   const inc = buf.incident[0];
   ok(inc?.primary_id === 'A7', `incident.primary_id = A7 (Hugo) [reçu ${inc?.primary_id}]`);
@@ -59,7 +61,7 @@ await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 2);
 console.log('\n[S1] Surplus Grand Huit : un seul appel, aucune cascade');
 await resetAndClear();
 op.emit('sim_incident', { transcript: 'malaise au grand huit, une personne au sol', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0);
+await waitFor(() => buf.incident.length > 0, LLM_WAIT_MS);
 await sleep(400);
 {
   const inc = buf.incident[0];
@@ -74,7 +76,7 @@ await sleep(400);
 console.log('\n[Override] operator_override réassigne + enregistre une contrainte');
 await resetAndClear();
 op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 1);
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 1, LLM_WAIT_MS);
 {
   const incId = buf.incident[0].id;
   clear();
@@ -87,7 +89,7 @@ await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 1);
 console.log('\n[Re-route] dispatch non acquitté -> re-route auto');
 await resetAndClear();
 op.emit('sim_incident', { transcript: 'malaise au grand huit', lang: 'fr' });
-await waitFor(() => buf.dispatch_log.length >= 1);
+await waitFor(() => buf.dispatch_log.length >= 1, LLM_WAIT_MS);
 {
   const before = buf.dispatch_log.length;
   const rerouted = await waitFor(() => buf.dispatch_log.some((d) => /re-route/.test(d.text || '')), Number(process.env.ACK_TIMEOUT_MS || 1500) + 2500);
@@ -112,7 +114,7 @@ op.emit('operator_override', { incidentId: 'standing', newAgentId: null, reason:
 await sleep(200);
 clear();
 op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'backfill'), 3000);
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'backfill'), LLM_WAIT_MS);
 {
   const back = buf.dispatch_log.find((d) => d.role === 'backfill');
   ok(back && back.agentId !== 'A1', `backfill n'est PAS Marco (A1) [reçu ${back?.agentId}]`);
@@ -121,8 +123,9 @@ await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.ro
 
 // --- Badge résilience : en mock, source déterministe (non dégradé) ---
 console.log('\n[Résilience] le champ source/degraded arrive au client');
-ok(buf.incident[0]?.source === 'mock:deterministic', `incident.source = mock:deterministic [reçu ${buf.incident[0]?.source}]`);
-ok(buf.incident[0]?.degraded === false, 'degraded=false en mock (vrai fallback = amber au pitch)');
+const src = buf.incident[0]?.source || '';
+ok(!!src, `incident.source renseigné [${src}]`);
+ok(src.startsWith('crusoe') || src === 'mock:deterministic', 'source = crusoe ou mock déterministe');
 
 console.log(`\n===== E2E ${pass} OK / ${fail} KO =====\n`);
 op.close();
