@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CONDUCTOR Crowd Density</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CONDUCTOR vision signal</p>
+          <h1>Crowd Density</h1>
+        </div>
+        <span id="modelStatus" class="status">model loading</span>
+      </header>
+
+      <section class="workspace">
+        <div class="upload-panel">
+          <label class="dropzone" id="dropzone">
+            <input id="fileInput" type="file" accept="video/*,image/*" />
+            <span class="drop-title">Upload footage</span>
+            <span class="drop-meta">video or image</span>
+          </label>
+
+          <div class="controls">
+            <label>
+              Samples
+              <input id="sampleCount" type="range" min="3" max="18" value="10" />
+              <output id="sampleCountOut">10</output>
+            </label>
+            <label>
+              Detection threshold
+              <input id="scoreThreshold" type="range" min="20" max="75" value="38" />
+              <output id="scoreThresholdOut">0.38</output>
+            </label>
+          </div>
+
+          <button id="analyzeButton" type="button" disabled>Analyze</button>
+        </div>
+
+        <div class="result-panel" id="resultPanel">
+          <div class="density-readout">
+            <span class="label">Density</span>
+            <strong id="densityLevel">Waiting</strong>
+            <span id="densityReason">No footage loaded</span>
+          </div>
+
+          <div class="metrics-grid">
+            <div>
+              <span>People</span>
+              <strong id="peopleMetric">-</strong>
+            </div>
+            <div>
+              <span>Occupied</span>
+              <strong id="occupiedMetric">-</strong>
+            </div>
+            <div>
+              <span>Confidence</span>
+              <strong id="confidenceMetric">-</strong>
+            </div>
+            <div>
+              <span>Method</span>
+              <strong id="methodMetric">-</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="media-section">
+        <div class="preview-wrap">
+          <video id="videoPreview" controls muted playsinline></video>
+          <img id="imagePreview" alt="" />
+        </div>
+        <div class="evidence">
+          <div class="section-heading">
+            <h2>Evidence Frames</h2>
+            <span id="frameSummary">0 frames</span>
+          </div>
+          <div id="frames" class="frames"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
