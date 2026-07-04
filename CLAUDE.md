@@ -4,8 +4,11 @@
 > Repo public : https://github.com/solanathouu/hackaton-raise · branche `main`.
 > Spec = `docs/conductor-PRD.md`. Contrats = `CONTRACTS.md`. Détails = `README.md`.
 
-## Bilan (audit Fable 2026-07-04 soir) : code ~90% (testé, réel) · **rendu final ~65%**
-Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (vidéo, répétitions, réseau) — voir Next Immediate Action. « Le risque n'est pas le code, c'est ce qui n'a jamais été répété. »
+## Bilan (checkpoint 2026-07-05) : code ~95% (testé, réel, designé) · **rendu final ~75%**
+Tout le logiciel est prêt : 3 surfaces refaites sous charte commune, sim 3D v2, routage téléphones
+prouvé en test croisé, caméra crowd intégrée au cerveau. Le reste est **100 % humain** : trust CA
+sur les téléphones, répétitions chrono en main, vidéo 1 min. « Le risque n'est pas le code, c'est
+ce qui n'a jamais été répété. »
 
 ## Current Project State
 | Aspect | Statut |
@@ -20,7 +23,9 @@ Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (
 | Capteur densité BLE + simulateur d'échelle (bonus, F5 proactif) | ✅ |
 | **Détecteur densité caméra** (`crowd-density/`, PR#4 Prakash mergée + branchée : `/crowd`, COCO-SSD vendoré offline, upload vidéo → niveau → émission `crowd_density` → heat 3D + advisory F5) | ✅ (intégré + vérifié 2026-07-05) |
 | Robustesse P4 (file TTS + retry-1008, témoins text-only, zone-prime) | ✅ |
-| **Latence mesurée** (~6 s bouton / ~8-9 s micro) · CA mkcert laptop + cert IP LAN OK · 3 surfaces servies live | ✅ (mesuré 2026-07-04, voir `docs/repetition-runbook.md`) |
+| **Latence mesurée** (~6 s bouton / ~8-9 s micro) · CA mkcert laptop OK | ✅ (2026-07-04, `docs/repetition-runbook.md`) |
+| **Charte graphique commune** (`docs/charte-graphique.md`) + refonte des 3 surfaces (staff talkie-walkie 3 vues, console dashboard, HUD 3D) | ✅ (vérifié Playwright 2026-07-05) |
+| **Routage téléphones par profil** (`?agent=`, rooms nettoyées au hello, test croisé médic/sécu : seul le bon tel sonne) | ✅ (2026-07-05) |
 | **Répétitions physiques + vidéo 1 min + trust CA sur téléphones** | ❌ **à faire (humain) — le vrai reste** |
 
 ## Surfaces (toutes servies par le coordinateur)
@@ -33,8 +38,8 @@ Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (
 ```bash
 cd coordinator && npm install
 # .env existe déjà (gitignored) : Crusoe + Gradium RÉELS (MOCK_CRUSOE=false, MOCK_GRADIUM=false)
-npm run certs            # certs mkcert (+ `mkcert -install` en sudo = À FAIRE À LA MAIN)
-npm start                # https://localhost:3000 + LAN
+npm run certs            # cert feuille (CA mkcert déjà trustée ; À REFAIRE à chaque changement de réseau/IP)
+npm start                # https://localhost:3000 — la ligne « LAN (en0): https://<IP>:3000 » donne l'URL téléphones
 cd ../simulator && npm install && npm run build   # -> /sim
 
 # Tests (tout vert, revérifié) :
@@ -57,15 +62,23 @@ npm run smoke:crusoe · npm run smoke:gradium · node scripts/smoke-pipeline.js 
 
 ## Branches (⚠ discipline : main = seule base ; pas de fork, pas de rebrand)
 - `main` = **canonique** (tout réel/testé).
+- `camera_crowd_detector` (PR#4 Prakash) = **MERGÉE** le 05/07 puis branchée au cerveau (`/crowd`).
 - `codex/backend`, `3dSimulator`, `conductor-app-p4`, `cursor/realtime-position-guidance` (PR#3) = **NE PAS MERGER**. Leur valeur a été **portée dans main** (SQLite/REST, 3D live, carte, robustesse TTS). Rebrand « Weave » de la PR#3 = **rejeté** (nom acté = CONDUCTOR).
 
-## Next Immediate Action (rendu final — quasi zéro code, ~4 h, ce soir/demain)
-1. **`mkcert -install`** (sudo) sur le laptop + truster le rootCA sur 1 iPhone + 1 Android. Bloqueur humain de tout le reste.
-2. **Monter le réseau réel** : hotspot + 2-3 téléphones sur `https://<IP-LAN>:3000/index.html`, PC sur `/operator.html`. **Dérouler S1→S4 à la voix, chronomètre en main** → mesurer micro→audio (la donnée manquante).
-3. **Staging** selon la mesure — ⚠ **hypothèse TTS corrigée** (mesuré 2026-07-04) : le TTS ne pèse que ~1,8 s (déjà parallélisé/dédup), le goulot est **Crusoe ~4 s + STT ~2,3 s** → pré-générer les TTS **ne passe PAS sous 5 s**. Vrais leviers : **mode boutons** (pas de STT → ~6 s), **pré-chauffe Crusoe**, et **assumer le raisonnement visible** comme argument. Toujours utile : `ACK_TIMEOUT_MS=8000` (flourish re-route, via env, pas de modif défaut), trancher la langue (dispatch ES = flourish, narration EN). **Détails + runbook = `docs/repetition-runbook.md`.**
-4. **Filmer la répétition** = vidéo de secours + rushes → monter la **vidéo d'1 min** (livrable OBLIGATOIRE, actuellement 0%).
-5. Répéter ×5, dont **une avec Crusoe coupé** (badge MODE DÉGRADÉ = argument résilience).
+## Next Immediate Action (100 % humain, ~3 h — tout le guide est dans `docs/repetition-runbook.md`)
+1. **Truster la CA mkcert sur les téléphones** (une fois par tel, procédure §3 du runbook) puis ouvrir
+   les liens par profil : `https://<IP-LAN>:3000/index.html?agent=A10` (médic) / `?agent=A6` (sécu) /
+   `?agent=A7` (héros S2). ⚠ à chaque **changement de réseau** : `npm run certs && npm start` et lire
+   la nouvelle IP dans la ligne « LAN (en0) ».
+2. **Répéter S1→S4 à la voix, chronomètre en main** (attendu micro→audio ~8-9 s ; accuser dans les
+   15 s sinon re-route F6 — feature à montrer une fois exprès). ×5, dont **une avec Crusoe coupé**
+   (`MOCK_CRUSOE=true npm start` → badge MODE DÉGRADÉ = argument résilience).
+3. **Filmer + monter la vidéo d'1 min** (livrable OBLIGATOIRE, actuellement 0 %). Structure suggérée §7.
+4. Scène bonus caméra : `/crowd` avec une vidéo CCTV de foule → « Envoyer au cerveau » → heat 3D +
+   advisory « Pré-positionner un renfort ? ». Tester avec la vidéo de Prakash avant.
 
-**Si reprise côté CODE** : bumper `CONTRACTS.md` en v2 (events additifs `sim_incident`/`reset`/`crowd_density`/`operator_action`, rôle `witness`, champs `nearby_notice`/`transcript_analysis`/`source`/`degraded`) ; optionnel : GPS coarse→zone + `guidance.js` (PR#3) mais nécessite le bump de contrat.
+**Si reprise côté CODE** (rien de bloquant) : bumper `CONTRACTS.md` en v2 (events additifs
+`sim_incident`/`reset`/`crowd_density`/`operator_action`, rôle `witness`, champs `nearby_notice`/
+`transcript_analysis`/`source`/`degraded`) ; optionnel : GPS coarse→zone + `guidance.js` (PR#3).
 
 ## Notation : Demo 50% · Impact 25% · Créativité 15% · Pitch 10%.
