@@ -44,6 +44,20 @@
     .badge.degraded { background:#3d2b0a; color:var(--warn); border:1px solid var(--warn); }
     .badge.live { background:#0f2d18; color:var(--ok); border:1px solid var(--ok); }
     .feed .cstr { color:var(--accent); }
+    /* Carte du site (portée de l'app P4, en support — pas dashboard-héros) */
+    .mapwrap { position:relative; width:100%; aspect-ratio:900/650; background:#0d1117; border:1px solid var(--line); border-radius:10px; overflow:hidden; touch-action:none; }
+    .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
+    .mapwrap svg:active { cursor:grabbing; }
+    .znode { cursor:pointer; }
+    .zlabel { font:600 13px sans-serif; fill:var(--txt); pointer-events:none; }
+    .zsub { font:11px sans-serif; fill:var(--dim); pointer-events:none; }
+    .adotlabel { font:700 9px sans-serif; fill:#fff; pointer-events:none; }
+    .edge { stroke:#21262d; stroke-width:2; }
+    .route { stroke:var(--accent); stroke-width:5; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8; animation:dash 1s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset:-18; } }
+    .routebanner { display:none; margin-top:10px; padding:10px; background:#0f2030; border:1px solid var(--accent); border-radius:9px; }
+    .routebanner.on { display:block; }
+    .hint { font-size:11px; color:var(--dim); margin-top:6px; }
   </style>
 </head>
 <body>
@@ -70,6 +84,22 @@
     <div class="card">
       <h2>Mes dispatchs</h2>
       <div id="dispatches"><p style="color:var(--dim);font-size:13px">Aucun pour l'instant.</p></div>
+    </div>
+
+    <div class="card">
+      <h2>Carte du site — tap une zone pour t'y positionner</h2>
+      <div class="mapwrap">
+        <svg id="map" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet">
+          <g id="mapg">
+            <g id="edges"></g>
+            <g id="routeg"></g>
+            <g id="znodes"></g>
+            <g id="adots"></g>
+          </g>
+        </svg>
+      </div>
+      <div class="routebanner" id="routebanner"></div>
+      <p class="hint">Tu es <b id="myzone">—</b>. Après « je m'en occupe », ton itinéraire s'affiche.</p>
     </div>
 
     <div class="card">
@@ -116,6 +146,58 @@
       }).join('');
     }
 
+    // --- Carte du site (coords UI-locales ; graphe/Dijkstra client à partir de l'adjacence du state) ---
+    const ZONES_XY = { Z1:[450,580], Z2:[200,150], Z3:[700,180], Z4:[780,350], Z5:[450,350], Z6:[180,400], Z7:[280,500], Z8:[350,120], Z9:[550,500], Z10:[650,600] };
+    let ZGRAPH = null;
+    function buildGraph(zones) {
+      const g = new Map(zones.map(z => [z.id, new Map()]));
+      for (const z of zones) for (const e of z.adjacency || []) { g.get(z.id).set(e.z, e.t); if (!g.has(e.z)) g.set(e.z, new Map()); g.get(e.z).set(z.id, e.t); }
+      return g;
+    }
+    function shortestRoute(from, to) {
+      if (!ZGRAPH || from === to) return { path: [from], sec: 0 };
+      const dist = new Map([[from, 0]]), prev = new Map(), seen = new Set();
+      for (;;) { let cur = null, cd = Infinity; for (const [id, d] of dist) if (!seen.has(id) && d < cd) { cur = id; cd = d; } if (cur === null || cur === to) break; seen.add(cur); for (const [n, w] of ZGRAPH.get(cur) || []) { const c = cd + w; if (c < (dist.get(n) ?? Infinity)) { dist.set(n, c); prev.set(n, cur); } } }
+      if (!dist.has(to)) return null;
+      const path = [to]; let n = to; while (n !== from) { n = prev.get(n); if (n === undefined) return null; path.unshift(n); }
+      return { path, sec: dist.get(to) };
+    }
+    const fmtSec = (s) => { const m = Math.floor(s / 60), x = Math.round(s % 60); return m ? (x ? `${m}min${String(x).padStart(2,'0')}` : `${m}min`) : `${x}s`; };
+
+    function renderMap(st) {
+      if (!st?.zones) return;
+      if (!ZGRAPH) ZGRAPH = buildGraph(st.zones);
+      const edges = [], seen = new Set();
+      for (const z of st.zones) { const a = ZONES_XY[z.id]; if (!a) continue; for (const e of z.adjacency || []) { const k = [z.id, e.z].sort().join('-'); if (seen.has(k)) continue; seen.add(k); const b = ZONES_XY[e.z]; if (b) edges.push(`<line class="edge" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`); } }
+      $('#edges').innerHTML = edges.join('');
+      $('#znodes').innerHTML = st.zones.map(z => { const p = ZONES_XY[z.id]; if (!p) return ''; const col = z.headcount < z.required_min ? '#f85149' : z.surplus > 0 ? '#388bfd' : '#2ea043'; return `<g class="znode" data-zone="${z.id}"><circle cx="${p[0]}" cy="${p[1]}" r="34" fill="${col}22" stroke="${col}" stroke-width="3"/><text class="zlabel" x="${p[0]}" y="${p[1]+1}" text-anchor="middle">${z.headcount}/${z.required_min}</text><text class="zsub" x="${p[0]}" y="${p[1]+46}" text-anchor="middle">${z.name}</text></g>`; }).join('');
+      const cnt = {};
+      $('#adots').innerHTML = st.agents.map(a => { const p = ZONES_XY[a.current_zone]; if (!p) return ''; const i = (cnt[a.current_zone] = (cnt[a.current_zone] || 0) + 1) - 1; const ang = i * 2.39996, rr = i ? 50 : 0; const x = p[0] + Math.cos(ang) * rr, y = p[1] + Math.sin(ang) * rr; const col = a.status === 'available' ? '#2ea043' : (a.status === 'responding' || a.status === 'backfilling') ? '#e3b341' : '#8b949e'; return `<g><circle cx="${x}" cy="${y}" r="9" fill="${col}" stroke="#0d1117" stroke-width="2"/><text class="adotlabel" x="${x}" y="${y+3}" text-anchor="middle">${a.id.replace(/[AR]/,'')}</text></g>`; }).join('');
+      const meA = st.agents.find(a => a.id === me); $('#myzone').textContent = meA ? (st.zones.find(z => z.id === meA.current_zone)?.name || meA.current_zone) : '—';
+    }
+
+    // pan/zoom (conversion px écran -> unités SVG pour un drag correct)
+    const vt = { x: 0, y: 0, k: 1 }; let drag = null, dragged = false;
+    const applyVT = () => $('#mapg').setAttribute('transform', `translate(${vt.x} ${vt.y}) scale(${vt.k})`);
+    const mapSvg = $('#map');
+    mapSvg.addEventListener('wheel', (e) => { e.preventDefault(); vt.k = Math.min(3, Math.max(0.6, vt.k * (e.deltaY < 0 ? 1.1 : 0.9))); applyVT(); }, { passive: false });
+    mapSvg.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, vx: vt.x, vy: vt.y }; dragged = false; });
+    mapSvg.addEventListener('pointermove', (e) => { if (!drag) return; const r = mapSvg.getBoundingClientRect(); const s = 900 / r.width; const dx = (e.clientX - drag.x) * s, dy = (e.clientY - drag.y) * s; if (Math.abs(dx) + Math.abs(dy) > 6) dragged = true; vt.x = drag.vx + dx; vt.y = drag.vy + dy; applyVT(); });
+    mapSvg.addEventListener('pointerup', () => { drag = null; });
+    // tap zone -> position
+    $('#znodes').addEventListener('click', (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest('.znode'); if (!g) return; socket.emit('position', { agentId: me, zoneId: g.dataset.zone }); feed(`📍 Position : ${g.dataset.zone}`); });
+
+    // itinéraire post-accusé
+    function showRoute(target) {
+      const st = lastState, meA = st?.agents.find(a => a.id === me); if (!meA) return;
+      const r = shortestRoute(meA.current_zone, target); if (!r) return;
+      $('#routeg').innerHTML = `<polyline class="route" points="${r.path.map(z => ZONES_XY[z] ? ZONES_XY[z].join(',') : '').filter(Boolean).join(' ')}"/>`;
+      const names = r.path.map(z => st.zones.find(x => x.id === z)?.name || z).join(' → ');
+      $('#routebanner').innerHTML = `<div style="font-weight:600">🧭 Itinéraire vers ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:4px 0">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrivé sur zone</button>`;
+      $('#routebanner').classList.add('on');
+    }
+    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); };
+
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
 
@@ -128,6 +210,7 @@
         who.value = me;
       }
       renderZones(st);
+      renderMap(st);
     });
 
     socket.on('crowd_density', (p) => {
@@ -145,13 +228,13 @@
       const el = document.createElement('div');
       el.className = 'dispatch'; el.id = 'd_' + d.assignmentId;
       el.innerHTML = `<div class="t">${d.text}</div><div class="meta">${d.role} · ${d.targetZone} · ${d.lang}</div>
-        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}')">✅ Je m'en occupe</button>
+        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">✅ Je m'en occupe</button>
         ${d.audioUrl?`<button onclick="playAudio('${d.audioUrl}')">🔊 Écouter</button>`:''}</div>`;
       const box = $('#dispatches'); if (box.querySelector('p')) box.innerHTML=''; box.prepend(el);
       if (d.audioUrl) playAudio(d.audioUrl);
       if (navigator.vibrate) navigator.vibrate([120,60,120]);
     });
-    window.ackIt = (id) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); };
+    window.ackIt = (id, target) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); if (target) showRoute(target); };
     window.playAudio = (url) => { new Audio(url).play().catch(()=>{}); };
 
     // --- feed opérateur ---
