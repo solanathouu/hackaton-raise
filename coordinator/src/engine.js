@@ -298,6 +298,8 @@ export function applyDecision(decision, state, opts = {}) {
   const zoneSkills = zoneById(sim, incidentZone)?.required_skills || [];
   const skillsNeeded = decision.skills_needed?.length ? decision.skills_needed : zoneSkills;
   const { protectedSet, applied: constraintsApplied } = protectedAgentIds(sim); // F8
+  // Fusionne les contraintes appliquées par le moteur (F8) et celles remontées par le LLM (apport P4).
+  const mergedConstraints = [...new Set([...constraintsApplied, ...(decision.constraints_applied || [])])];
 
   const assignments = [];
   const warnings = [];
@@ -319,7 +321,7 @@ export function applyDecision(decision, state, opts = {}) {
       assignments: [],
       warnings: [{ zoneId: incidentZone, etaSec: 0, message: `Aucun répondant qualifié disponible pour ${incidentZone}.` }],
       nextState: state,
-      incident: buildIncident(decision, incidentId, null, [], warnings, opts, constraintsApplied),
+      incident: buildIncident(decision, incidentId, null, [], warnings, opts, mergedConstraints),
       repaired: true,
     };
   }
@@ -360,7 +362,7 @@ export function applyDecision(decision, state, opts = {}) {
     assignments,
     warnings,
     nextState: commit(state, sim),
-    incident: buildIncident(decision, incidentId, primary.id, assignments, warnings, opts, constraintsApplied),
+    incident: buildIncident(decision, incidentId, primary.id, assignments, warnings, opts, mergedConstraints),
     repaired: primaryRepaired,
   };
 }

@@ -98,11 +98,12 @@ export async function handleIncident({ state, audio, transcript, langHint, incid
   }
 
   const zoneGuess = detectZone(transcript, state.zones);
-  const snapshot = buildSnapshot(state, zoneGuess, { transcript, lang });
+  const incidentZone = zoneGuess || state.zones[0]?.id; // jamais de zone nulle (apport P4)
+  const snapshot = buildSnapshot(state, incidentZone, { transcript, lang });
   const decision = await decide(snapshot, transcript);
   decision._transcript = transcript;
   decision._lang = lang;
-  if (!decision.zone_id) decision.zone_id = zoneGuess;
+  if (incidentZone) decision.zone_id = incidentZone; // la zone détectée prime sur le LLM
 
   const { assignments, warnings, nextState, incident, repaired } = applyDecision(decision, state, {
     incidentId,
@@ -124,12 +125,17 @@ export async function handleIncident({ state, audio, transcript, langHint, incid
     sent_at: now ?? null,
   }));
 
-  // TTS en parallèle (latence ~1 appel au lieu de N) + cache par texte.
+  // TTS : primary + backfill uniquement en parallèle + cache. Les TÉMOINS = texte seul (pas de TTS)
+  // -> tient dans la limite ~2 sessions Gradium et coupe la latence/coût (apport P4).
   const ttsCache = new Map();
   const dispatches = await Promise.all(
-    [...assignments, ...witnessAssignments].map((as) =>
-      buildDispatchPayload(as, incident, state, ttsCache),
-    ),
+    [...assignments, ...witnessAssignments].map((as) => {
+      if (as.role === 'witness') {
+        const { text, lang: rlang } = dispatchText(as, incident, state);
+        return { assignmentId: as.id, incidentId: incident.id, role: as.role, targetZone: as.target_zone, agentId: as.agent_id, text, audioUrl: null, lang: rlang };
+      }
+      return buildDispatchPayload(as, incident, state, ttsCache);
+    }),
   );
 
   if (decision.nearby_notice) {

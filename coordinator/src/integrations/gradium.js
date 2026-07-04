@@ -30,6 +30,44 @@ function fetchWithTimeout(url, options, timeoutMs) {
   return fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
 }
 
+// Gradium limite ~2 sessions TTS simultanées -> file d'attente + retry sur 1008 (apport P4).
+// Défaut 2 (garde le bénéfice du Promise.all d'agent.js ; la PR mettait 1 = tout sérialisé).
+const TTS_MAX = Math.max(1, Number(process.env.GRADIUM_TTS_CONCURRENCY || 2));
+let ttsSlots = 0;
+const ttsWait = [];
+function acquireTtsSlot() {
+  if (ttsSlots < TTS_MAX) { ttsSlots++; return Promise.resolve(); }
+  return new Promise((resolve) => ttsWait.push(resolve));
+}
+function releaseTtsSlot() {
+  ttsSlots = Math.max(0, ttsSlots - 1);
+  const next = ttsWait.shift();
+  if (next) { ttsSlots++; next(); } // hand-off du slot, pas de double-décrément
+}
+async function withTtsSlot(fn) {
+  await acquireTtsSlot();
+  try { return await fn(); } finally { releaseTtsSlot(); }
+}
+// POST TTS avec retry (backoff linéaire) sur la limite de concurrence Gradium (1008). Garde le timeout P3.
+async function gradiumTtsRequest(body) {
+  const maxRetries = 4;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const res = await fetchWithTimeout(`${BASE}/post/speech/tts`, {
+      method: 'POST',
+      headers: { 'x-api-key': config.gradium.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }, TTS_TIMEOUT_MS);
+    if (res.ok) return res;
+    const errText = await res.text().catch(() => '');
+    if (/Concurrency limit|1008/.test(errText) && attempt < maxRetries - 1) {
+      await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+      continue;
+    }
+    throw new Error(`Gradium TTS ${res.status}: ${errText}`);
+  }
+  throw new Error('Gradium TTS: retries épuisés');
+}
+
 // --- transcribe : audio -> { text, lang } ---------------------------------
 // Chaîne de résilience (F9) : Gradium -> whisper.cpp local (si configuré) -> fixture mock.
 // `strict: true` (smoke tests) propage l'erreur Gradium au lieu de fallback.
@@ -97,17 +135,14 @@ async function gradiumTranscribe(buf, lang) {
 // --- speak : (text, lang) -> { audioUrl } ----------------------------------
 export async function speak(text, lang = 'fr', { id, format = 'wav' } = {}) {
   if (config.mockGradium) return loadMockFixtures().speak; // { audioUrl: "/mock/tts-sample.mp3" }
-  const res = await fetchWithTimeout(`${BASE}/post/speech/tts`, {
-    method: 'POST',
-    headers: { 'x-api-key': config.gradium.apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, voice_id: VOICE[lang] || VOICE.fr, output_format: format, only_audio: true }),
-  }, TTS_TIMEOUT_MS);
-  if (!res.ok) throw new Error(`Gradium TTS ${res.status}: ${await res.text().catch(() => '')}`);
-  const audio = Buffer.from(await res.arrayBuffer());
-  mkdirSync(TTS_DIR, { recursive: true });
-  const fname = `${id || 'tts'}_${lang}.${format}`;
-  writeFileSync(resolve(TTS_DIR, fname), audio);
-  return { audioUrl: `/tts/${fname}` };
+  return withTtsSlot(async () => {
+    const res = await gradiumTtsRequest({ text, voice_id: VOICE[lang] || VOICE.fr, output_format: format, only_audio: true });
+    const audio = Buffer.from(await res.arrayBuffer());
+    mkdirSync(TTS_DIR, { recursive: true });
+    const fname = `${id || 'tts'}_${lang}.${format}`;
+    writeFileSync(resolve(TTS_DIR, fname), audio);
+    return { audioUrl: `/tts/${fname}` };
+  });
 }
 
 // Vérif crédits/coupon : GET /usages/credits -> { remaining_credits, allocated_credits, ... }

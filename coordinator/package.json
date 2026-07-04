@@ -16,6 +16,7 @@
     "certs": "bash scripts/make-certs.sh",
     "smoke:crusoe": "node scripts/smoke-crusoe.js",
     "smoke:gradium": "node scripts/smoke-gradium.js",
+    "smoke:prod": "node scripts/prod-smoke.js",
     "sim:demo": "node scripts/sim-demo.js",
     "sim:agents": "node scripts/sim-agents.js",
     "sensor:crowd": "node scripts/crowd-density.js",

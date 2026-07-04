@@ -113,8 +113,9 @@ export function validateDecision(raw, snapshot) {
     );
   }
 
-  if (incidentZone && decision.zone_id && decision.zone_id !== incidentZone) {
-    errors.push(`zone_id "${decision.zone_id}" ≠ incident.zone_id "${incidentZone}"`);
+  // Zone détectée (detectZone) prime sur le LLM : on aligne au lieu de rejeter (apport P4).
+  if (incidentZone && decision.zone_id !== incidentZone) {
+    decision.zone_id = incidentZone;
   }
 
   const rawBackfills = Array.isArray(raw.backfills) ? raw.backfills.slice(0, 2) : [];
