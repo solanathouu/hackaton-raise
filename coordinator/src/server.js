@@ -211,7 +211,8 @@ io.on('connection', (socket) => {
 // --- Boot ------------------------------------------------------------------
 server.listen(config.port, '0.0.0.0', () => {
   const proto = server instanceof https.Server ? 'https' : 'http';
-  console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}  (USE_MOCKS=${config.useMocks})`);
+  console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}`);
+  console.log(`   cerveau: ${config.mockCrusoe ? 'mock' : `Crusoe(${config.crusoe.model})`} · voix: ${config.mockGradium ? 'mock' : 'Gradium'}`);
   for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
     for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`   LAN (${name}) : ${proto}://${a.address}:${config.port}`);
   }

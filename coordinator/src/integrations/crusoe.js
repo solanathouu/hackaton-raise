@@ -22,7 +22,7 @@ function getClient() {
 
 // decide : renvoie TOUJOURS une Decision valide. Ne throw jamais (résilience F9).
 export async function decide(snapshot, transcript) {
-  if (config.useMocks) {
+  if (config.mockCrusoe) {
     // Mode mock/offline = fallback déterministe piloté par le transcript (detectZone + moteur).
     // Fait tourner TOUT le pipeline sans clé et incarne la résilience F9. Reproduit S2 (Hugo+Marco).
     return { ...deterministicDecide(snapshot, transcript), _source: 'mock:deterministic' };
