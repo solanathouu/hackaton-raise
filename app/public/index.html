@@ -139,7 +139,11 @@
     const mode = $('#mode');
     function setMode(i) {
       if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = '⚠ MODE DÉGRADÉ (fallback local)'; mode.style.display = ''; }
-      else if (i.source && i.source.startsWith('crusoe')) { mode.className = 'badge live'; mode.textContent = '🧠 Crusoe'; mode.style.display = ''; }
+      else if (i.source && i.source.startsWith('crusoe')) {
+        mode.className = 'badge live';
+        mode.textContent = i.model ? `🧠 ${i.model.split('/').pop()}` : '🧠 Crusoe';
+        mode.style.display = '';
+      }
     }
     let lastIncidentId = null;
     socket.on('incident', (i) => {

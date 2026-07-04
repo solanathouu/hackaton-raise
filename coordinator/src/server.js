@@ -11,11 +11,12 @@ import os from 'node:os';
 import express from 'express';
 import { Server as SocketServer } from 'socket.io';
 
-import { config, loadSeed } from './config.js';
+import { config, loadSeed, assertCrusoeLiveWorkflowOrExit, validateCrusoeLiveWorkflow } from './config.js';
 import { buildState, serializeState, setPosition, setStatus, commitAgents, nextIncidentId, addConstraint } from './state.js';
 import { candidatesPrimary, candidatesBackfill, zoneById } from './engine.js';
 import { handleIncident } from './agent.js';
 import { createStore } from './persistence.js';
+import { prewarmCrusoe } from './integrations/crusoe.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -34,8 +35,23 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(resolve(ROOT, '../app/public')));               // PWA staff
 app.use('/mock', express.static(resolve(ROOT, '../app/public/mock'))); // /mock/tts-sample.mp3
 app.use('/tts', express.static(resolve(ROOT, 'tts-cache')));           // TTS générés
-
-app.get('/health', (_req, res) => res.json({ ok: true, useMocks: config.useMocks, persist: store.enabled }));
+app.get('/health', (_req, res) => {
+  const crusoeLive = validateCrusoeLiveWorkflow();
+  res.json({
+    ok: true,
+    useMocks: config.useMocks,
+    mockCrusoe: config.mockCrusoe,
+    mockGradium: config.mockGradium,
+    persist: store.enabled,
+    crusoe: {
+      liveReady: crusoeLive.ok,
+      model: config.crusoe.model,
+      modelFallback: config.crusoe.modelFallback,
+      allowedModels: config.crusoe.allowedModels,
+      errors: crusoeLive.errors,
+    },
+  });
+});
 app.get('/api/state', (_req, res) => res.json(serializeState(state)));
 app.get('/api/incidents', (req, res) => res.json({ incidents: store.listIncidents(Number(req.query.limit) || 50) }));
 
@@ -82,9 +98,9 @@ function clearPending(agentId, assignmentId) {
 function emitDispatch(d) {
   io.to(`agent:${d.agentId}`).emit('dispatch', d);
   io.emit('dispatch_log', d); // console opérateur (feed)
-  trackPending(d);
   store.logEvent('dispatch', d);
-  armAck(d);
+  // Les témoins (witness) ne sont ni acquittés ni ré-routés : pas de tracking/timer.
+  if (d.role !== 'witness') { trackPending(d); armAck(d); }
 }
 
 function armAck(dispatch) {
@@ -153,8 +169,10 @@ async function runIncident({ audio, transcript, langHint }) {
   io.emit('incident', res.incident); // console opérateur : feed + justification
   for (const d of res.dispatches) emitDispatch(d);
   for (const w of res.warnings) io.emit('coverage_warning', w);
+  const nWitness = res.dispatches.filter((d) => d.role === 'witness').length;
   console.log(`[incident ${incidentId}] "${res.incident.transcript}" -> primary ${res.incident.primary_id}` +
-    `, ${res.dispatches.filter((d) => d.role === 'backfill').length} backfill, ${res.warnings.length} warning (LLM: ${res.decision._source})`);
+    `, ${res.dispatches.filter((d) => d.role === 'backfill').length} backfill, ${nWitness} témoin(s), ${res.warnings.length} warning` +
+    ` (LLM: ${res.decision._source}${res.decision._model ? ` / ${res.decision._model}` : ''})`);
   return res;
 }
 
@@ -255,10 +273,18 @@ io.on('connection', (socket) => {
 });
 
 // --- Boot ------------------------------------------------------------------
+assertCrusoeLiveWorkflowOrExit();
+
 server.listen(config.port, '0.0.0.0', () => {
   const proto = server instanceof https.Server ? 'https' : 'http';
   console.log(`\n🎛  CONDUCTOR coordinateur — ${proto}://localhost:${config.port}`);
   console.log(`   cerveau: ${config.mockCrusoe ? 'mock' : `Crusoe(${config.crusoe.model})`} · voix: ${config.mockGradium ? 'mock' : 'Gradium'} · log SQLite: ${store.enabled ? 'on' : 'off'}`);
+  if (!config.mockCrusoe) {
+    console.log(`   [crusoe] fallback: ${config.crusoe.modelFallback} · allowlist: ${config.crusoe.allowedModels.length} modèles`);
+    prewarmCrusoe()
+      .then((ms) => ms != null && console.log(`   [crusoe] pré-chauffe OK (${ms} ms)`))
+      .catch((e) => console.warn(`   [crusoe] pré-chauffe échouée: ${e.message}`));
+  }
   for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
     for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`   LAN (${name}) : ${proto}://${a.address}:${config.port}`);
   }

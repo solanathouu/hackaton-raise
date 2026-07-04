@@ -16,3 +16,9 @@ tts-cache/
 *.sqlite
 *.sqlite-*
 coordinator/data/*.sqlite
+
+# P5 local only — prompt Rork (ne pas versionner)
+docs/rork-prompt-p5-console-operateur.md
+
+# Added by ggshield
+.cache_ggshield
