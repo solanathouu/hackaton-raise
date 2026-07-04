@@ -16,10 +16,11 @@ Le logiciel est prêt et solide. Le rendu se joue maintenant sur la **scène** (
 | Voix **Gradium RÉELLE** (STT + TTS fr/en/es, crédits 144k/145k) | ✅ validée en réel |
 | PWA staff (`app/public/index.html` : PTT, dispatch, accusé, badge dégradé, **carte SVG + itinéraire**) | ✅ |
 | Console opérateur (`app/public/operator.html` : alertes F5 Accepter/Réassigner + override + densité) | ✅ |
-| **Simulateur 3D branché LIVE** (`simulator/`, servi `/sim`, vue read-only du cerveau) | ✅ |
+| **Simulateur 3D v2** (`simulator/`, servi `/sim`, vue live read-only : parc volumétrique animé, agents qui se déplacent le long des allées, balises incident ∝ sévérité, badges modèle/dégradé, feed justification Crusoe, demo offline `?mode=demo`, verify:visual cross-platform) | ✅ (réécrit + vérifié live 2026-07-04) |
 | Capteur densité BLE + simulateur d'échelle (bonus, F5 proactif) | ✅ |
 | Robustesse P4 (file TTS + retry-1008, témoins text-only, zone-prime) | ✅ |
-| **Répétitions + vidéo 1 min + réseau de démo + latence mesurée** | ❌ **à faire (humain) — le vrai reste** |
+| **Latence mesurée** (~6 s bouton / ~8-9 s micro) · CA mkcert laptop + cert IP LAN OK · 3 surfaces servies live | ✅ (mesuré 2026-07-04, voir `docs/repetition-runbook.md`) |
+| **Répétitions physiques + vidéo 1 min + trust CA sur téléphones** | ❌ **à faire (humain) — le vrai reste** |
 
 ## Surfaces (toutes servies par le coordinateur)
 - `/index.html` — app staff (téléphones) : PTT + dispatch vocal + accusé + carte.
@@ -59,7 +60,7 @@ npm run smoke:crusoe · npm run smoke:gradium · node scripts/smoke-pipeline.js 
 ## Next Immediate Action (rendu final — quasi zéro code, ~4 h, ce soir/demain)
 1. **`mkcert -install`** (sudo) sur le laptop + truster le rootCA sur 1 iPhone + 1 Android. Bloqueur humain de tout le reste.
 2. **Monter le réseau réel** : hotspot + 2-3 téléphones sur `https://<IP-LAN>:3000/index.html`, PC sur `/operator.html`. **Dérouler S1→S4 à la voix, chronomètre en main** → mesurer micro→audio (la donnée manquante).
-3. **Staging** selon la mesure : pré-générer les TTS des 4 scénarios si >5 s (cache `/tts` existant), baisser `ACK_TIMEOUT_MS` à ~8000 (flourish re-route), trancher la langue (dispatch ES = flourish, narration EN).
+3. **Staging** selon la mesure — ⚠ **hypothèse TTS corrigée** (mesuré 2026-07-04) : le TTS ne pèse que ~1,8 s (déjà parallélisé/dédup), le goulot est **Crusoe ~4 s + STT ~2,3 s** → pré-générer les TTS **ne passe PAS sous 5 s**. Vrais leviers : **mode boutons** (pas de STT → ~6 s), **pré-chauffe Crusoe**, et **assumer le raisonnement visible** comme argument. Toujours utile : `ACK_TIMEOUT_MS=8000` (flourish re-route, via env, pas de modif défaut), trancher la langue (dispatch ES = flourish, narration EN). **Détails + runbook = `docs/repetition-runbook.md`.**
 4. **Filmer la répétition** = vidéo de secours + rushes → monter la **vidéo d'1 min** (livrable OBLIGATOIRE, actuellement 0%).
 5. Répéter ×5, dont **une avec Crusoe coupé** (badge MODE DÉGRADÉ = argument résilience).
 

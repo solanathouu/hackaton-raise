@@ -67,10 +67,18 @@ export class LiveCoordinatorEngine extends EventTarget {
     this.socket.on("dispatch_log", (d) => this._onDispatch(d));
     this.socket.on("coverage_warning", (w) => this._onWarning(w));
     this.socket.on("ack_log", (a) => this._onAck(a));
-    this.socket.on("connect", () =>
-      this.emit("decision", { kind: "neutral", title: "Coordinateur connecté", body: "Vue live du cerveau active.", tone: "neutral" }));
-    this.socket.on("disconnect", () =>
-      this.emit("decision", { kind: "warning", title: "Coordinateur déconnecté", body: "La vue n'est plus alimentée.", tone: "danger" }));
+    // Densité de foule (capteur BLE / simulateur) -> heat visuel sur la zone.
+    this.socket.on("crowd_density", (p) => {
+      if (p?.zoneId) this.emit("density", { zoneId: p.zoneId, ratio: p.ratio || 0, deviceCount: p.deviceCount });
+    });
+    this.socket.on("connect", () => {
+      this.emit("connection", { connected: true });
+      this.emit("decision", { kind: "neutral", title: "Coordinateur connecté", body: "Vue live du cerveau active.", tone: "neutral" });
+    });
+    this.socket.on("disconnect", () => {
+      this.emit("connection", { connected: false });
+      this.emit("decision", { kind: "warning", title: "Coordinateur déconnecté", body: "La vue n'est plus alimentée.", tone: "danger" });
+    });
   }
 
   // `state` (Contrat A) : source de vérité de la couverture. On met à jour le miroir et on ré-émet
@@ -131,9 +139,15 @@ export class LiveCoordinatorEngine extends EventTarget {
       language: inc.language || "fr", type: inc.type || "incident", skillsNeeded: inc.skills_needed || [],
       severity: inc.severity || 3, status: "triaging", primaryId: inc.primary_id || null, backfills: [],
       warnings: inc.warning ? [inc.warning] : [], startedAt: this._elapsed,
-      patientOffset: [(Math.random() - 0.5) * 2.6, 0, (Math.random() - 0.5) * 2.6],
+      // Offset patient DÉTERMINISTE (hash de l'id) : même position sur tous les écrans connectés.
+      patientOffset: (() => {
+        let h = 0;
+        for (const c of String(inc.id)) h = (h * 31 + c.charCodeAt(0)) % 9973;
+        return [((h % 27) / 26 - 0.5) * 2.6, 0, (((h >> 3) % 27) / 26 - 0.5) * 2.6];
+      })(),
     };
     this.incidents.push(incident);
+    if (this.incidents.length > 50) this.incidents.shift(); // borne mémoire (session grand écran)
     this.emit("incident", { incident });
     this.emit("decision", {
       kind: "parse", title: `Incident : ${zone.name}`,
@@ -142,6 +156,8 @@ export class LiveCoordinatorEngine extends EventTarget {
     });
     if (inc.justification) this.emit("decision", { kind: "parse", title: "Justification", body: inc.justification, tone: "neutral" });
     if (inc.degraded) this.emit("decision", { kind: "warning", title: "Mode dégradé", body: "Crusoe injoignable — dispatch déterministe local.", tone: "warning" });
+    // Badges HUD : état du cerveau (modèle utilisé / dégradé) porté par chaque incident.
+    this.emit("brain", { degraded: !!inc.degraded, model: inc.model || null, source: inc.source || null });
   }
 
   // `dispatch_log` (broadcast) : anime le déplacement de l'agent. Les TÉMOINS ne bougent pas (ignorés).
@@ -165,7 +181,7 @@ export class LiveCoordinatorEngine extends EventTarget {
 
   _onWarning(w) {
     this.emit("decision", {
-      kind: "warning", title: `Alerte couverture : ${this.zone(w.zoneId)?.name || w.zoneId}`,
+      kind: "warning", zoneId: w.zoneId, title: `Alerte couverture : ${this.zone(w.zoneId)?.name || w.zoneId}`,
       body: w.message || "", tone: "danger",
     });
     if (w.message) this.emit("speak", { speaker: "Conductor", text: w.message });
@@ -173,6 +189,7 @@ export class LiveCoordinatorEngine extends EventTarget {
 
   _onAck(a) {
     const agent = this.agentById.get(a.agentId);
+    this.emit("ack", { agentId: a.agentId });
     this.emit("decision", { kind: "ack", title: `${agent?.name || a.agentId} a accusé`, body: "Intervention confirmée.", tone: "success" });
   }
 
@@ -241,6 +258,7 @@ export class LiveCoordinatorEngine extends EventTarget {
   reset() {
     this.incidents = [];
     this._incidentSeen.clear();
+    this.emit("reset", {}); // symétrie de contrat avec le moteur demo (balises 3D nettoyées)
     this.emit("coverage", this.getCoverage());
   }
   tick(deltaSeconds) {
