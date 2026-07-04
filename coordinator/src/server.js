@@ -269,6 +269,9 @@ io.on('connection', (socket) => {
 
   socket.on('hello', ({ agentId }) => {
     if (!agentId) return;
+    // Changement de profil sur un téléphone : quitter l'ancienne room agent:* sinon le
+    // téléphone continue de recevoir les dispatchs de l'ancien profil (défaut A7 inclus).
+    for (const r of socket.rooms) if (r.startsWith('agent:') && r !== `agent:${agentId}`) socket.leave(r);
     socket.data.agentId = agentId;
     socket.join(`agent:${agentId}`);
     setStatus(state, agentId, 'available');

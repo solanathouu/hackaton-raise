@@ -129,7 +129,11 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let me = localStorage.getItem('me') || 'A7';
+    // ?agent=A6 : préconfigure le profil du téléphone par l'URL (un lien par téléphone),
+    // persisté ensuite — plus besoin de toucher le menu à chaque ouverture.
+    const qsAgent = new URLSearchParams(location.search).get('agent');
+    if (qsAgent) localStorage.setItem('me', qsAgent.toUpperCase());
+    let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || 'A7';
     let lang = 'fr';
     let lastState = null;
     const crowdByZone = {};

@@ -50,6 +50,28 @@ Fichier CA : `/Users/nathan/Library/Application Support/mkcert/rootCA.pem`
 - **Android** : *Paramètres ▸ Sécurité ▸ Chiffrement & identifiants ▸ Installer un certificat ▸ Certificat CA* → choisir `rootCA.pem`.
 - **Pourquoi obligatoire** : le micro (getUserMedia) exige un *secure context*. HTTPS avec cert non trusté ≠ secure context → **micro bloqué**. Sans CA trustée, on reste sur les **boutons** (qui, eux, marchent).
 
+## 3 bis. Configurer les téléphones par PROFIL (testé et validé 2026-07-04 soir)
+
+Un téléphone = un agent. Le serveur n'envoie le dispatch (texte + TTS + vibration) **qu'au téléphone
+du profil choisi par le cerveau** (compétence + proximité) — validé en test croisé médic/sécu réel.
+
+**Un lien par téléphone** (le `?agent=` configure et persiste le profil) :
+- 📱 « médecin » : `https://192.168.8.91:3000/index.html?agent=A10` (Emma, RCP+medic, Zone Enfants)
+- 📱 « sécurité » : `https://192.168.8.91:3000/index.html?agent=A6` (Sofia, secu, Place Centrale)
+- 📱 « RCP terrain » : `https://192.168.8.91:3000/index.html?agent=A7` (Hugo, RCP, Manège Extrême — le héros du S2)
+- « Ajouter à l'écran d'accueil » (Safari/Chrome) = icône plein écran façon app.
+
+**Appels de test croisés** (à dire au micro, ou via les boutons démo) :
+| Tu dis… | Doit sonner | Doit rester muet |
+|---|---|---|
+| « malaise à la zone enfants, personne inconsciente » | 📱 A10 Emma | A6 |
+| « bagarre à la place centrale, il faut la sécurité » | 📱 A6 Sofia | A10 |
+| « arrêt cardiaque au manège extrême, il ne respire plus » | 📱 A7 Hugo (+ backfill Marco) | A6, A10 |
+
+⚠ **Accuser (« ✅ Je m'en occupe ») dans les 15 s** sinon le serveur re-route (F6) — c'est une
+feature (à montrer exprès une fois), pas un bug. Bug corrigé au passage : un téléphone qui change
+de profil ne reçoit plus les dispatchs de l'ancien profil (rooms WS nettoyées au `hello`).
+
 ## 4. Runbook répétition — S1 → S4
 Avant chaque scénario : **Reset** (bouton `reset` sur la console, ou event `reset`) → état seed propre (toutes zones à leur minimum, surplus Z2 +1 / Z5 +1).
 
