@@ -89,7 +89,7 @@ coordinator/
       gradium.js      transcribe()/speak() — endpoints RÉELS + fallback whisper.cpp (P3)
   scripts/       make-certs.sh · smoke-crusoe.js · smoke-gradium.js · compare-models.js · smoke-pipeline.js
   test/          engine.selftest.js · ws.e2e.js · persistence.test.js
-app/public/      PWA staff (harnais de test fonctionnel — P4 étend/remplace)
+app/public/      index.html (PWA staff : PTT/dispatch/accusé) + operator.html (console opérateur)
 ```
 
 ## Répartition (5) — voir `docs/conductor-team-kickoff.md`
@@ -97,7 +97,7 @@ app/public/      PWA staff (harnais de test fonctionnel — P4 étend/remplace)
 - **P2** — coordinateur/WS : apports **réconciliés dans `server.js`** (log SQLite, API REST de démo, replay reconnexion) — voir note ci-dessous.
 - **P3** — Gradium : interface + endpoints réels câblés dans `gradium.js`, à finaliser (voice_ids, S2S live).
 - **P4** — PWA : `app/public/index.html` fonctionne (état, PTT, dispatch, accusé, carte à ajouter — Leaflet).
-- **P5** — Crusoe : `prompt.js` + `crusoe.js` prêts ; brancher la vraie clé + console opérateur.
+- **P5** — Crusoe : `prompt.js` + `crusoe.js` (branchés, réels). ✅ **Console opérateur** livrée (`app/public/operator.html` : alertes F5 Accepter/Réassigner, override qui choisit l'agent, feed densité). Reste : gestion démo (répétitions, vidéo).
 
 ## État kickoff (checklist)
 - [x] Repo public *new work only* · seed committé · 6 contrats gelés (`CONTRACTS.md`)

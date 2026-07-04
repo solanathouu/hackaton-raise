@@ -13,10 +13,11 @@ import { Server as SocketServer } from 'socket.io';
 
 import { config, loadSeed, assertCrusoeLiveWorkflowOrExit, validateCrusoeLiveWorkflow } from './config.js';
 import { buildState, serializeState, setPosition, setStatus, commitAgents, nextIncidentId, addConstraint } from './state.js';
-import { candidatesPrimary, candidatesBackfill, zoneById } from './engine.js';
+import { candidatesPrimary, candidatesBackfill, zoneById, agentById } from './engine.js';
 import { handleIncident } from './agent.js';
 import { createStore } from './persistence.js';
 import { prewarmCrusoe } from './integrations/crusoe.js';
+import { speak } from './integrations/gradium.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -218,6 +219,25 @@ function applyOverride({ incidentId, newAgentId, reason }) {
   io.emit('override_log', { incidentId, newAgentId, reason });
 }
 
+// Dispatch manuel opérateur : envoie un agent choisi vers une zone (renfort). Réutilise emitDispatch (accusé + TTS + persistance).
+async function dispatchAgentToZone({ agentId, zoneId, reason, textOverride }) {
+  const agent = agentById(state, agentId);
+  if (!agent || !zoneById(state, zoneId)) return false;
+  if (reason) addConstraint(state, { scope: 'zone', rule_text: reason, source_override: zoneId });
+  setStatus(state, agentId, 'backfilling');
+  const as = { id: `as_op${state.assignments.length + 1}`, incident_id: null, agent_id: agentId, role: 'backfill', target_zone: zoneId, status: 'sent', sent_at: Date.now() };
+  state.assignments.push(as);
+  store.logAssignment(as);
+  broadcastState();
+  const zoneName = zoneById(state, zoneId)?.name || zoneId;
+  const lang = agent.languages?.[0] || 'fr';
+  const text = textOverride || `Renfort demandé : rejoins ${zoneName} pour maintenir la couverture.`;
+  let audioUrl = null;
+  try { audioUrl = (await speak(text, lang, { id: as.id })).audioUrl; } catch (e) { console.warn(`[operator] TTS KO ${e.message}`); }
+  emitDispatch({ assignmentId: as.id, incidentId: null, role: 'backfill', targetZone: zoneId, agentId, text, audioUrl, lang });
+  return true;
+}
+
 function doReset() {
   for (const t of ackTimers.values()) clearTimeout(t);
   ackTimers.clear();
@@ -300,6 +320,21 @@ io.on('connection', (socket) => {
 
   socket.on('ack', ({ assignmentId }) => ackAssignment(assignmentId));
   socket.on('operator_override', (payload) => applyOverride(payload || {}));
+
+  // Console opérateur : réponse à une alerte de couverture (F5). accepter = on assume le
+  // trou (log) ; réassigner = on envoie un agent choisi combler la zone.
+  socket.on('operator_action', async ({ action, zoneId, agentId, reason }) => {
+    try {
+      if (action === 'accept') {
+        store.logEvent('operator_accept', { zoneId, reason });
+        io.emit('operator_log', { action: 'accept', zoneId, reason });
+      } else if (action === 'reassign' && agentId && zoneId) {
+        const ok = await dispatchAgentToZone({ agentId, zoneId, reason });
+        io.emit('operator_log', { action: 'reassign', zoneId, agentId, reason, ok });
+      }
+    } catch (e) { console.error('[operator_action]', e); }
+  });
+
   socket.on('reset', () => doReset());
 
   socket.on('disconnect', () => { /* on garde l'agent dans l'état + ses dispatchs en attente (replay au retour) */ });
