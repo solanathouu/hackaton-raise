@@ -6,6 +6,8 @@ coordinator/certs/*.key
 *.log
 .DS_Store
 dist/
+.vite/
+artifacts/
 tts-cache/
 
 # playwright / captures

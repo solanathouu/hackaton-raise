@@ -12,6 +12,53 @@ le poste vacant (*backfill surplus-aware*) pour qu'aucune zone ne devienne aveug
 
 ---
 
+## 3D Simulator (branch `3dSimulator`)
+
+This branch adds a standalone Three.js simulation for explaining Conductor as a live dispatch coordinator inside an amusement park or festival-style venue.
+
+The simulator shows:
+
+- a 3D park map with zones, attractions, staff, crowd density, route beams, and coverage rings
+- repeated guest-collapse scenarios from the right-side operator UI
+- nearest qualified responder selection by skill, zone, travel time, and coverage impact
+- second-order coverage reasoning: if a responder creates a blackspot, Conductor backfills it
+- acknowledgement timeout and automatic reroute
+- ambulance handoff after the primary responder reaches the patient
+- operator approve, ask-why, and override controls
+- browser speech synthesis for Conductor and responder voice updates
+
+Run it:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://127.0.0.1:5173`.
+
+Build and verify:
+
+```bash
+npm run build
+npm run verify:visual
+```
+
+The visual verifier opens the page in Chrome or Edge, runs a dispatch scenario, checks the timeout/reroute path, captures desktop/mobile screenshots, and samples pixels to catch blank WebGL renders.
+
+Key simulator files:
+
+```text
+index.html
+src/main.js
+src/engine.js
+src/data.js
+src/styles.css
+scripts/verify-visual.mjs
+scripts/serve-dist.mjs
+```
+
+---
+
 ## Démarrer en 2 min
 
 ```bash
