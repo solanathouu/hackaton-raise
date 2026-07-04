@@ -59,14 +59,23 @@ function dispatchText(assignment, incident, state) {
   return { text, lang };
 }
 
-async function buildDispatchPayload(as, incident, state) {
+// ttsCache : dédoublonne les synthèses d'un même texte (les witness partagent souvent le même message).
+async function buildDispatchPayload(as, incident, state, ttsCache) {
   const { text, lang: rlang } = dispatchText(as, incident, state);
-  let audioUrl = null;
-  try {
-    audioUrl = (await speak(text, rlang, { id: as.id })).audioUrl;
-  } catch (e) {
-    console.warn(`[agent] TTS échec pour ${as.id} (${e.message}) -> texte seul`);
+  const key = `${rlang}|${text}`;
+  if (!ttsCache.has(key)) {
+    ttsCache.set(
+      key,
+      speak(text, rlang, { id: as.id }).then(
+        (r) => r.audioUrl,
+        (e) => {
+          console.warn(`[agent] TTS échec pour ${as.id} (${e.message}) -> texte seul`);
+          return null;
+        },
+      ),
+    );
   }
+  const audioUrl = await ttsCache.get(key);
   return {
     assignmentId: as.id,
     incidentId: incident.id,
@@ -100,28 +109,28 @@ export async function handleIncident({ state, audio, transcript, langHint, incid
     now,
   });
 
-  const dispatches = [];
-  for (const as of assignments) {
-    dispatches.push(await buildDispatchPayload(as, incident, state));
-  }
-
   // Prévenir les agents qualifiés aux alentours (pas le primary ni les backfills).
   const usedIds = assignments.map((a) => a.agent_id);
   const skills = incident.skills_needed?.length ? incident.skills_needed : decision.skills_needed || [];
   const nearby = candidatesNearbyNotice(state, incident.zone_id, skills, usedIds);
   let witnessSeq = assignments.length + 1;
-  for (const agent of nearby) {
-    const witnessAs = {
-      id: `as_w${witnessSeq++}`,
-      incident_id: incident.id,
-      agent_id: agent.id,
-      role: 'witness',
-      target_zone: incident.zone_id,
-      status: 'sent',
-      sent_at: now ?? null,
-    };
-    dispatches.push(await buildDispatchPayload(witnessAs, incident, state));
-  }
+  const witnessAssignments = nearby.map((agent) => ({
+    id: `as_w${witnessSeq++}`,
+    incident_id: incident.id,
+    agent_id: agent.id,
+    role: 'witness',
+    target_zone: incident.zone_id,
+    status: 'sent',
+    sent_at: now ?? null,
+  }));
+
+  // TTS en parallèle (latence ~1 appel au lieu de N) + cache par texte.
+  const ttsCache = new Map();
+  const dispatches = await Promise.all(
+    [...assignments, ...witnessAssignments].map((as) =>
+      buildDispatchPayload(as, incident, state, ttsCache),
+    ),
+  );
 
   if (decision.nearby_notice) {
     incident.nearby_notice = decision.nearby_notice;
