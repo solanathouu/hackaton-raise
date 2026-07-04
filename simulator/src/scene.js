@@ -4,17 +4,19 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+// Charte CONDUCTOR (commune staff / console / 3D) : accent unique #4cc2ff,
+// statuts sémantiques ok/warn/bad, fond #0b0e13.
 export const PALETTE = {
-  bg: "#0a0d13",
+  bg: "#0b0e13",
   ground: "#101720",
   grass: "#12211a",
   path: "#232d3b",
-  ok: "#2ea043",
-  warn: "#e3b341",
-  bad: "#f85149",
-  accent: "#388bfd",
-  txt: "#e6edf3",
-  dim: "#8b949e",
+  ok: "#2ea862",
+  warn: "#e8b13f",
+  bad: "#ff5449",
+  accent: "#4cc2ff",
+  txt: "#e8edf4",
+  dim: "#8b96a5",
 };
 
 const AUTO_ORBIT_SPEED = 0.035;      // rad/s — rotation ambiante lente

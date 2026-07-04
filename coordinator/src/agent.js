@@ -25,19 +25,19 @@ const TEMPLATES = {
     primary: (t, z) => `${t} au ${z}, tu es le plus proche. Vas-y.`,
     backfill: (z) => `Rejoins ${z} pour maintenir la couverture.`,
     witness: (t, z, primaryName) =>
-      `${t} au ${z} : ${primaryName} intervient. Ce n'est pas toi — reste en place.`,
+      `${t} au ${z} : ${primaryName} intervient. Ce n'est pas toi, reste en place.`,
   },
   en: {
     primary: (t, z) => `${t} at ${z}, you are the closest. Go now.`,
     backfill: (z) => `Move to ${z} to keep coverage.`,
     witness: (t, z, primaryName) =>
-      `${t} at ${z}: ${primaryName} is responding. Not you — stay in position.`,
+      `${t} at ${z}: ${primaryName} is responding. Not you, stay in position.`,
   },
   es: {
     primary: (t, z) => `${t} en ${z}, eres el más cercano. Ve ahora.`,
     backfill: (z) => `Ve a ${z} para mantener la cobertura.`,
     witness: (t, z, primaryName) =>
-      `${t} en ${z}: interviene ${primaryName}. No eres tú — quédate en posición.`,
+      `${t} en ${z}: interviene ${primaryName}. No eres tú, quédate en posición.`,
   },
 };
 

@@ -2,63 +2,156 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>CONDUCTOR — staff</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230d1117'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%23388bfd' stroke-width='7'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23f85149'/%3E%3C/svg%3E" />
-  <meta name="theme-color" content="#0d1117" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>CONDUCTOR · Staff</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b0e13'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%234cc2ff' stroke-width='7'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23ff5449'/%3E%3C/svg%3E" />
+  <meta name="theme-color" content="#0b0e13" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <style>
-    :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --ok:#2ea043; --warn:#e3b341; --bad:#f85149; --txt:#e6edf3; --dim:#8b949e; --accent:#388bfd; }
+    /* ==== Charte CONDUCTOR ==================================================
+       Fond #0b0e13 · panneaux #11151c · lignes #232a35 · accent UNIQUE #4cc2ff
+       Statuts sémantiques : ok #2ea862 · warn #e8b13f · danger #ff5449
+       Données chiffrées en mono tabulaire. Radius 10px partout, le PTT est le
+       seul cercle. Offline-first : system fonts, zéro ressource réseau. */
+    :root {
+      --bg:#0b0e13; --panel:#11151c; --panel2:#171c24; --line:#232a35;
+      --txt:#e8edf4; --dim:#8b96a5; --accent:#4cc2ff;
+      --ok:#2ea862; --warn:#e8b13f; --bad:#ff5449;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      --r:10px;
+    }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { margin:0; font:15px/1.4 -apple-system,system-ui,sans-serif; background:var(--bg); color:var(--txt); }
-    header { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
-    header h1 { font-size:16px; margin:0; letter-spacing:.5px; }
-    header .dot { width:9px; height:9px; border-radius:50%; background:var(--bad); }
+    html, body { height:100%; }
+    body { margin:0; font:15px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--txt); }
+
+    /* ---- header ---- */
+    header {
+      display:flex; align-items:center; gap:10px; padding:12px 16px;
+      padding-top:calc(12px + env(safe-area-inset-top));
+      background:var(--panel); border-bottom:1px solid var(--line);
+      position:sticky; top:0; z-index:5;
+    }
+    header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
+    header .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; }
     header .dot.on { background:var(--ok); }
-    select, button { font:inherit; color:var(--txt); background:#21262d; border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
-    button:active { transform:scale(.98); }
-    main { display:grid; grid-template-columns:1fr; gap:12px; padding:12px; max-width:900px; margin:0 auto; }
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; }
-    .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin:0 0 10px; }
-    .zones { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
-    .zone { border:1px solid var(--line); border-radius:8px; padding:8px; background:#0d1117; }
-    .zone .n { font-size:12px; color:var(--dim); }
-    .zone .h { font-size:20px; font-weight:700; }
-    .zone.ok { border-left:3px solid var(--ok); } .zone.sur { border-left:3px solid var(--accent); } .zone.bad { border-left:3px solid var(--bad); }
-    .zone .sk { font-size:10px; color:var(--warn); }
-    .zone .ble { font-size:10px; color:var(--accent); margin-top:4px; }
-    .ptt { width:100%; padding:22px; font-size:18px; font-weight:700; border-radius:14px; background:var(--bad); border:none; color:#fff; user-select:none; }
-    .ptt.rec { background:#7d1a15; animation:pulse 1s infinite; }
-    @keyframes pulse { 50% { opacity:.6; } }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .dispatch { border-left:3px solid var(--accent); padding:10px; margin-bottom:8px; background:#0d1117; border-radius:8px; }
-    .dispatch.done { opacity:.5; border-color:var(--ok); }
-    .dispatch .t { font-weight:600; margin-bottom:6px; }
-    .dispatch .meta { font-size:11px; color:var(--dim); margin-bottom:8px; }
-    .ackbtn { background:var(--ok); border:none; color:#fff; font-weight:700; }
-    .feed div { font-size:13px; padding:6px 0; border-bottom:1px solid var(--line); }
-    .feed .warn { color:var(--warn); } .feed .just { color:var(--dim); font-style:italic; }
-    .demo button { font-size:12px; }
-    .lang { display:flex; gap:4px; }
-    .lang button.sel { background:var(--accent); border-color:var(--accent); }
-    .badge { font-size:11px; font-weight:700; padding:4px 9px; border-radius:6px; }
-    .badge.degraded { background:#3d2b0a; color:var(--warn); border:1px solid var(--warn); }
-    .badge.live { background:#0f2d18; color:var(--ok); border:1px solid var(--ok); }
-    .badge.analysing { background:#0d1b3d; color:#7db3ff; border:1px solid #2b5fbf; animation:pulse 1.1s infinite; }
-    .feed .cstr { color:var(--accent); }
-    /* Carte du site (portée de l'app P4, en support — pas dashboard-héros) */
-    .mapwrap { position:relative; width:100%; aspect-ratio:900/650; background:#0d1117; border:1px solid var(--line); border-radius:10px; overflow:hidden; touch-action:none; }
+    #who {
+      font:600 13px/1 -apple-system, system-ui, sans-serif; color:var(--accent);
+      background:transparent; border:1px solid var(--line); border-radius:var(--r);
+      padding:7px 8px; max-width:150px;
+    }
+
+    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+    .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
+    .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
+    .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
+    @keyframes pulse { 50% { opacity:.45; } }
+
+    /* ---- vues ---- */
+    main { max-width:640px; margin:0 auto; padding:16px 16px calc(76px + env(safe-area-inset-bottom)); }
+    .view { display:none; }
+    .view.on { display:block; }
+
+    /* ---- vue RADIO : le talkie ---- */
+    .ptt-stage { display:flex; flex-direction:column; align-items:center; padding:28px 0 20px; }
+    .ptt {
+      width:min(62vw, 250px); height:min(62vw, 250px); border-radius:50%;
+      background:radial-gradient(circle at 50% 38%, #182029, var(--panel) 70%);
+      border:2px solid var(--line); color:var(--txt);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+      user-select:none; touch-action:none; cursor:pointer;
+      box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      transition:transform .12s, border-color .2s;
+    }
+    .ptt:active { transform:scale(.965); }
+    .ptt .k { font-size:24px; font-weight:800; letter-spacing:4px; }
+    .ptt .s { font-size:11px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
+    .ptt.rec {
+      border-color:var(--bad);
+      background:radial-gradient(circle at 50% 38%, #3a1512, #200d0b 72%);
+      animation:recring 1.1s infinite;
+    }
+    .ptt.rec .k { color:var(--bad); }
+    @keyframes recring {
+      0%   { box-shadow:0 0 0 0 rgba(255,84,73,.35), 0 12px 40px rgba(0,0,0,.45); }
+      70%  { box-shadow:0 0 0 26px rgba(255,84,73,0), 0 12px 40px rgba(0,0,0,.45); }
+      100% { box-shadow:0 0 0 0 rgba(255,84,73,0), 0 12px 40px rgba(0,0,0,.45); }
+    }
+    .ptt-hint { font-size:11px; color:var(--dim); margin-top:14px; text-align:center; }
+
+    /* ---- dispatchs (l'événement central) ---- */
+    .dispatch {
+      background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+      border-radius:var(--r); padding:16px; margin-bottom:10px;
+    }
+    .dispatch.done { opacity:.45; border-left-color:var(--ok); }
+    .dispatch .meta { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .dispatch .tag { font:700 10px/1 var(--mono); letter-spacing:1px; text-transform:uppercase; padding:4px 7px; border-radius:6px; }
+    .dispatch .tag.primary { background:#33130f; color:var(--bad); }
+    .dispatch .tag.backfill { background:#0c2030; color:var(--accent); }
+    .dispatch .tag.witness { background:var(--panel2); color:var(--dim); }
+    .dispatch .zone { font:600 12px var(--mono); color:var(--dim); }
+    .dispatch .t { font-size:17px; font-weight:600; line-height:1.4; margin-bottom:14px; }
+    .dispatch .row { display:flex; gap:8px; }
+    .ackbtn {
+      flex:1; background:var(--ok); border:none; color:#fff; font:700 15px/1 -apple-system, system-ui, sans-serif;
+      letter-spacing:.5px; padding:15px; border-radius:var(--r);
+    }
+    .ackbtn:active { transform:scale(.98); }
+    .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
+    .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 0; }
+
+    /* ---- vue CARTE ---- */
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px; }
+    .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--dim); margin:0 0 10px; font-weight:700; }
+    .mapwrap { position:relative; width:100%; aspect-ratio:900/650; background:var(--bg); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; touch-action:none; }
     .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
     .mapwrap svg:active { cursor:grabbing; }
     .znode { cursor:pointer; }
-    .zlabel { font:600 13px sans-serif; fill:var(--txt); pointer-events:none; }
-    .zsub { font:11px sans-serif; fill:var(--dim); pointer-events:none; }
-    .adotlabel { font:700 9px sans-serif; fill:#fff; pointer-events:none; }
-    .edge { stroke:#21262d; stroke-width:2; }
+    .zlabel { font:700 13px var(--mono); fill:var(--txt); pointer-events:none; }
+    .zsub { font:11px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; }
+    .adotlabel { font:700 9px var(--mono); fill:#fff; pointer-events:none; }
+    .edge { stroke:#1c232e; stroke-width:2; }
     .route { stroke:var(--accent); stroke-width:5; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8; animation:dash 1s linear infinite; }
     @keyframes dash { to { stroke-dashoffset:-18; } }
-    .routebanner { display:none; margin-top:10px; padding:10px; background:#0f2030; border:1px solid var(--accent); border-radius:9px; }
+    .routebanner { display:none; margin-top:10px; padding:12px; background:#0c2030; border:1px solid #1d4a63; border-radius:var(--r); }
     .routebanner.on { display:block; }
-    .hint { font-size:11px; color:var(--dim); margin-top:6px; }
+    .hint { font-size:11px; color:var(--dim); margin-top:8px; }
+    .zones { display:grid; grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); gap:8px; }
+    .zone { border:1px solid var(--line); border-radius:var(--r); padding:9px 10px; background:var(--bg); }
+    .zone .n { font-size:11px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .zone .h { font:700 19px var(--mono); font-variant-numeric:tabular-nums; }
+    .zone .h span { font-size:12px; color:var(--dim); font-weight:400; }
+    .zone.ok { border-left:3px solid var(--ok); } .zone.sur { border-left:3px solid var(--accent); } .zone.bad { border-left:3px solid var(--bad); }
+    .zone .sk { font:600 10px var(--mono); color:var(--warn); }
+    .zone .ble { font:600 10px var(--mono); color:var(--accent); margin-top:3px; }
+
+    /* ---- vue PLUS ---- */
+    .feed div { font-size:13px; padding:7px 0; border-bottom:1px solid var(--line); }
+    .feed div:last-child { border-bottom:none; }
+    .feed .warn { color:var(--warn); } .feed .just { color:var(--dim); font-style:italic; } .feed .cstr { color:var(--accent); }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .demo button, .lang button {
+      font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt);
+      background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:10px 12px;
+    }
+    .demo button:active, .lang button:active { transform:scale(.97); }
+    .lang button.sel { background:#0c2030; border-color:var(--accent); color:var(--accent); }
+    #f8 { border-color:#1d4a63; }
+    #reset { background:#2a1210; border-color:#5c2320; }
+
+    /* ---- nav bas (3 vues) ---- */
+    nav {
+      position:fixed; left:0; right:0; bottom:0; z-index:6;
+      display:flex; background:rgba(13, 17, 23, .92); backdrop-filter:blur(10px);
+      border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom);
+    }
+    nav button {
+      flex:1; background:none; border:none; border-top:2px solid transparent;
+      color:var(--dim); font:700 11px/1 -apple-system, system-ui, sans-serif;
+      letter-spacing:2px; padding:15px 0 13px;
+    }
+    nav button.on { color:var(--accent); border-top-color:var(--accent); }
   </style>
 </head>
 <body>
@@ -67,64 +160,73 @@
     <h1>CONDUCTOR</h1>
     <span id="mode" class="badge" style="display:none"></span>
     <span style="flex:1"></span>
-    <label style="font-size:12px;color:var(--dim)">Agent</label>
     <select id="who"></select>
   </header>
 
   <main>
-    <div class="card">
-      <h2>Signalement vocal</h2>
-      <div class="lang" style="margin-bottom:8px">
-        <span style="font-size:12px;color:var(--dim);align-self:center">Langue&nbsp;:</span>
-        <button data-lang="fr" class="sel">FR</button><button data-lang="es">ES</button>
+    <!-- ============ VUE RADIO (défaut, le talkie) ============ -->
+    <section class="view on" id="view-radio">
+      <div class="ptt-stage">
+        <button class="ptt" id="ptt"><span class="k">PARLER</span><span class="s">maintenir</span></button>
+        <p class="ptt-hint">Décris l'urgence. Le dispatch revient ici, sur le bon téléphone.</p>
       </div>
-      <button class="ptt" id="ptt">🎙️ Maintenir pour parler</button>
-      <p style="font-size:11px;color:var(--dim);margin:8px 0 0">Micro nécessite HTTPS (mkcert). Sinon, utilise les boutons démo.</p>
-    </div>
+      <div id="dispatches"><p class="empty">Aucun dispatch pour l'instant.</p></div>
+    </section>
 
-    <div class="card">
-      <h2>Mes dispatchs</h2>
-      <div id="dispatches"><p style="color:var(--dim);font-size:13px">Aucun pour l'instant.</p></div>
-    </div>
-
-    <div class="card">
-      <h2>Carte du site — tap une zone pour t'y positionner</h2>
-      <div class="mapwrap">
-        <svg id="map" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet">
-          <g id="mapg">
-            <g id="edges"></g>
-            <g id="routeg"></g>
-            <g id="znodes"></g>
-            <g id="adots"></g>
-          </g>
-        </svg>
+    <!-- ============ VUE CARTE ============ -->
+    <section class="view" id="view-map">
+      <div class="card">
+        <h2>Carte du site</h2>
+        <div class="mapwrap">
+          <svg id="map" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet">
+            <g id="mapg">
+              <g id="edges"></g>
+              <g id="routeg"></g>
+              <g id="znodes"></g>
+              <g id="adots"></g>
+            </g>
+          </svg>
+        </div>
+        <div class="routebanner" id="routebanner"></div>
+        <p class="hint">Tu es : <b id="myzone">…</b>. Tape une zone pour t'y positionner. Après « je m'en occupe », ton itinéraire s'affiche ici.</p>
       </div>
-      <div class="routebanner" id="routebanner"></div>
-      <p class="hint">Tu es <b id="myzone">—</b>. Après « je m'en occupe », ton itinéraire s'affiche.</p>
-    </div>
-
-    <div class="card">
-      <h2>Couverture des zones</h2>
-      <div class="zones" id="zones"></div>
-    </div>
-
-    <div class="card">
-      <h2>Feed opérateur</h2>
-      <div class="feed" id="feed"></div>
-    </div>
-
-    <div class="card demo">
-      <h2>Démo (sans micro)</h2>
-      <div class="row">
-        <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1 · surplus Z2</button>
-        <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2 · cascade Z8</button>
-        <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
-        <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · réserviste ES</button>
-        <button id="f8" style="background:#132a3d">F8 · protège Marco (override)</button>
-        <button id="reset" style="background:#3d1a1a">reset</button>
+      <div class="card">
+        <h2>Couverture des zones</h2>
+        <div class="zones" id="zones"></div>
       </div>
-    </div>
+    </section>
+
+    <!-- ============ VUE PLUS (journal, démo, réglages) ============ -->
+    <section class="view" id="view-more">
+      <div class="card">
+        <h2>Langue du signalement</h2>
+        <div class="lang">
+          <button data-lang="fr" class="sel">FR</button><button data-lang="es">ES</button>
+        </div>
+      </div>
+      <div class="card demo">
+        <h2>Démo sans micro</h2>
+        <div class="row">
+          <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1 · surplus Z2</button>
+          <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2 · cascade Z8</button>
+          <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
+          <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · réserviste ES</button>
+          <button id="f8">F8 · protège Marco</button>
+          <button id="reset">Reset</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Journal</h2>
+        <div class="feed" id="feed"></div>
+      </div>
+    </section>
   </main>
+
+  <nav>
+    <button class="on" data-view="radio">RADIO</button>
+    <button data-view="map">CARTE</button>
+    <button data-view="more">PLUS</button>
+  </nav>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
@@ -139,15 +241,22 @@
     const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
 
+    // --- navigation 3 vues (radio / carte / plus) ---
+    function switchView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + name));
+      document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.view === name));
+    }
+    document.querySelectorAll('nav button').forEach(b => b.onclick = () => switchView(b.dataset.view));
+
     function renderZones(st) {
       if (!st?.zones) return;
       $('#zones').innerHTML = st.zones.map(z => {
         const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
         const ble = crowdByZone[z.id];
         const bleHtml = ble
-          ? `<div class="ble">📡 ${ble.deviceCount} BT${ble.ratio ? ` ×${ble.ratio}` : ''}</div>`
+          ? `<div class="ble">BLE ${ble.deviceCount}${ble.ratio ? ` ×${ble.ratio}` : ''}</div>`
           : '';
-        return `<div class="zone ${cls}"><div class="n">${z.name}</div><div class="h">${z.headcount}<span style="font-size:12px;color:var(--dim)">/${z.required_min}</span></div>${z.required_skills.length?`<div class="sk">${z.required_skills.join(',')}</div>`:''}${bleHtml}</div>`;
+        return `<div class="zone ${cls}"><div class="n">${z.name}</div><div class="h">${z.headcount}<span>/${z.required_min}</span></div>${z.required_skills.length?`<div class="sk">${z.required_skills.join(',')}</div>`:''}${bleHtml}</div>`;
       }).join('');
     }
 
@@ -175,10 +284,10 @@
       const edges = [], seen = new Set();
       for (const z of st.zones) { const a = ZONES_XY[z.id]; if (!a) continue; for (const e of z.adjacency || []) { const k = [z.id, e.z].sort().join('-'); if (seen.has(k)) continue; seen.add(k); const b = ZONES_XY[e.z]; if (b) edges.push(`<line class="edge" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`); } }
       $('#edges').innerHTML = edges.join('');
-      $('#znodes').innerHTML = st.zones.map(z => { const p = ZONES_XY[z.id]; if (!p) return ''; const col = z.headcount < z.required_min ? '#f85149' : z.surplus > 0 ? '#388bfd' : '#2ea043'; return `<g class="znode" data-zone="${z.id}"><circle cx="${p[0]}" cy="${p[1]}" r="34" fill="${col}22" stroke="${col}" stroke-width="3"/><text class="zlabel" x="${p[0]}" y="${p[1]+1}" text-anchor="middle">${z.headcount}/${z.required_min}</text><text class="zsub" x="${p[0]}" y="${p[1]+46}" text-anchor="middle">${z.name}</text></g>`; }).join('');
+      $('#znodes').innerHTML = st.zones.map(z => { const p = ZONES_XY[z.id]; if (!p) return ''; const col = z.headcount < z.required_min ? '#ff5449' : z.surplus > 0 ? '#4cc2ff' : '#2ea862'; return `<g class="znode" data-zone="${z.id}"><circle cx="${p[0]}" cy="${p[1]}" r="34" fill="${col}22" stroke="${col}" stroke-width="3"/><text class="zlabel" x="${p[0]}" y="${p[1]+1}" text-anchor="middle">${z.headcount}/${z.required_min}</text><text class="zsub" x="${p[0]}" y="${p[1]+46}" text-anchor="middle">${z.name}</text></g>`; }).join('');
       const cnt = {};
-      $('#adots').innerHTML = st.agents.map(a => { const p = ZONES_XY[a.current_zone]; if (!p) return ''; const i = (cnt[a.current_zone] = (cnt[a.current_zone] || 0) + 1) - 1; const ang = i * 2.39996, rr = i ? 50 : 0; const x = p[0] + Math.cos(ang) * rr, y = p[1] + Math.sin(ang) * rr; const col = a.status === 'available' ? '#2ea043' : (a.status === 'responding' || a.status === 'backfilling') ? '#e3b341' : '#8b949e'; return `<g><circle cx="${x}" cy="${y}" r="9" fill="${col}" stroke="#0d1117" stroke-width="2"/><text class="adotlabel" x="${x}" y="${y+3}" text-anchor="middle">${a.id.replace(/[AR]/,'')}</text></g>`; }).join('');
-      const meA = st.agents.find(a => a.id === me); $('#myzone').textContent = meA ? (st.zones.find(z => z.id === meA.current_zone)?.name || meA.current_zone) : '—';
+      $('#adots').innerHTML = st.agents.map(a => { const p = ZONES_XY[a.current_zone]; if (!p) return ''; const i = (cnt[a.current_zone] = (cnt[a.current_zone] || 0) + 1) - 1; const ang = i * 2.39996, rr = i ? 50 : 0; const x = p[0] + Math.cos(ang) * rr, y = p[1] + Math.sin(ang) * rr; const col = a.status === 'available' ? '#2ea862' : (a.status === 'responding' || a.status === 'backfilling') ? '#e8b13f' : '#8b96a5'; return `<g><circle cx="${x}" cy="${y}" r="9" fill="${col}" stroke="#0b0e13" stroke-width="2"/><text class="adotlabel" x="${x}" y="${y+3}" text-anchor="middle">${a.id.replace(/[AR]/,'')}</text></g>`; }).join('');
+      const meA = st.agents.find(a => a.id === me); $('#myzone').textContent = meA ? (st.zones.find(z => z.id === meA.current_zone)?.name || meA.current_zone) : '…';
     }
 
     // pan/zoom (conversion px écran -> unités SVG pour un drag correct)
@@ -198,10 +307,10 @@
       const r = shortestRoute(meA.current_zone, target); if (!r) return;
       $('#routeg').innerHTML = `<polyline class="route" points="${r.path.map(z => ZONES_XY[z] ? ZONES_XY[z].join(',') : '').filter(Boolean).join(' ')}"/>`;
       const names = r.path.map(z => st.zones.find(x => x.id === z)?.name || z).join(' → ');
-      $('#routebanner').innerHTML = `<div style="font-weight:600">🧭 Itinéraire vers ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:4px 0">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrivé sur zone</button>`;
+      $('#routebanner').innerHTML = `<div style="font-weight:600">Itinéraire vers ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:5px 0 9px">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrivé sur zone</button>`;
       $('#routebanner').classList.add('on');
     }
-    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); };
+    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); switchView('radio'); };
 
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
@@ -225,31 +334,34 @@
       feed(`📡 Capteur BLE · ${p.zoneId} : ${p.deviceCount} appareils${p.ratio ? ` (×${p.ratio} vs normale)` : ''}`, hot ? 'warn' : '');
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p style="color:var(--dim);font-size:13px">Aucun pour l\'instant.</p>'; };
+    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">Aucun dispatch pour l\'instant.</p>'; };
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
-    // --- dispatch reçu (seulement pour moi) ---
+    // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
     socket.on('dispatch', (d) => {
       const el = document.createElement('div');
       el.className = 'dispatch'; el.id = 'd_' + d.assignmentId;
-      el.innerHTML = `<div class="t">${d.text}</div><div class="meta">${d.role} · ${d.targetZone} · ${d.lang}</div>
-        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">✅ Je m'en occupe</button>
-        ${d.audioUrl?`<button onclick="playAudio('${d.audioUrl}')">🔊 Écouter</button>`:''}</div>`;
-      const box = $('#dispatches'); if (box.querySelector('p')) box.innerHTML=''; box.prepend(el);
+      el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${d.lang}</span></div>
+        <div class="t">${d.text}</div>
+        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">Je m'en occupe</button>
+        ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Réécouter</button>`:''}</div>`;
+      const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML='';
+      box.prepend(el);
       if (d.audioUrl) playAudio(d.audioUrl);
       if (navigator.vibrate) navigator.vibrate([120,60,120]);
+      switchView('radio');
     });
-    window.ackIt = (id, target) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); if (target) showRoute(target); };
+    window.ackIt = (id, target) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); if (target) { showRoute(target); switchView('map'); } };
     window.playAudio = (url) => { new Audio(url).play().catch(()=>{}); };
 
     // --- feed opérateur ---
     const feed = (html, cls='') => { const d=document.createElement('div'); d.className=cls; d.innerHTML=html; $('#feed').prepend(d); };
     const mode = $('#mode');
     function setMode(i) {
-      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = '⚠ MODE DÉGRADÉ (fallback local)'; mode.style.display = ''; }
+      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
       else if (i.source && i.source.startsWith('crusoe')) {
         mode.className = 'badge live';
-        mode.textContent = i.model ? `🧠 ${i.model.split('/').pop()}` : '🧠 Crusoe';
+        mode.textContent = i.model ? i.model.split('/').pop() : 'Crusoe';
         mode.style.display = '';
       }
     }
@@ -257,7 +369,7 @@
     // Écrasé par setMode() à l'arrivée de l'incident ; garde-fou 20 s si rien n'arrive.
     let analyseTimer = null;
     function analysing() {
-      mode.className = 'badge analysing'; mode.textContent = '🧠 Crusoe analyse le parc…'; mode.style.display = '';
+      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyse…'; mode.style.display = '';
       clearTimeout(analyseTimer); analyseTimer = setTimeout(() => { mode.style.display = 'none'; }, 20000);
     }
     let lastIncidentId = null;
@@ -275,6 +387,7 @@
 
     // --- PTT micro ---
     let rec, chunks = [];
+    const pttLabel = (k, s) => { $('#ptt').innerHTML = `<span class="k">${k}</span><span class="s">${s}</span>`; };
     async function startRec() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -287,16 +400,16 @@
           analysing();
           stream.getTracks().forEach(t => t.stop());
         };
-        rec.start(); $('#ptt').classList.add('rec'); $('#ptt').textContent = '● Enregistrement…';
-      } catch (e) { alert('Micro bloqué : ' + e.message + '\nActive HTTPS (npm run certs) ou utilise les boutons démo.'); }
+        rec.start(); $('#ptt').classList.add('rec'); pttLabel('À TOI', 'relâche pour envoyer');
+      } catch (e) { alert('Micro bloqué : ' + e.message + '\nActive HTTPS (npm run certs) ou utilise les boutons démo (vue PLUS).'); }
     }
-    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); $('#ptt').textContent = '🎙️ Maintenir pour parler'; }
+    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('PARLER', 'maintenir'); }
     const ptt = $('#ptt');
     ptt.addEventListener('mousedown', startRec); ptt.addEventListener('mouseup', stopRec);
     ptt.addEventListener('touchstart', (e)=>{e.preventDefault();startRec();}); ptt.addEventListener('touchend', (e)=>{e.preventDefault();stopRec();});
 
     // --- démo ---
-    document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); });
+    document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); switchView('radio'); });
     $('#f8').onclick = () => {
       if (!lastIncidentId) return alert('Déclenche d\'abord un incident (ex : S2).');
       socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protège Marco' });

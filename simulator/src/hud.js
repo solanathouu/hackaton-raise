@@ -16,7 +16,7 @@ export function createHud(root, { mode }) {
         <span class="badge degraded" id="hudDegraded" style="display:none">⚠ MODE DÉGRADÉ</span>
         <span class="badge model" id="hudModel" style="display:none"></span>
       </div>
-      <span class="brand-sub">${mode === "demo" ? "simulation locale scriptée — cerveau embarqué" : "vue live du cerveau — dispatch temps réel"}</span>
+      <span class="brand-sub">${mode === "demo" ? "simulation locale scriptée · cerveau embarqué" : "vue live du cerveau · dispatch temps réel"}</span>
     </header>
 
     <section class="hud-feed" id="hudFeed" aria-live="polite"></section>
