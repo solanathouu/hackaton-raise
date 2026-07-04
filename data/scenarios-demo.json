@@ -1,0 +1,161 @@
+[
+  {
+    "id": "ASTRO-CRUSH-1",
+    "title": "Crush point · scène + arrêt cardiaque simultanés",
+    "subtitle": "Inspiré Astroworld 2021 — densité critique ignorée",
+    "label": "S1 · crush + RCP",
+    "transcript": "CC à tous CC à tous, barrière sud manège extrême, la foule pousse fort, y'a des gens au sol au premier rang, j'entends plus la radio de Thomas… euh non de… enfin un môme crie qu'il respire plus, arrêt cardiaque probable dans la foule compactée, on peut pas passer avec le brancard, renfort sécu ET secours immédiat",
+    "lang": "fr",
+    "zone_hint": "Z8",
+    "severity": 5,
+    "pressures": ["densité crush Z8", "arrêt cardiaque inaccessible", "Z5 déjà en surcharge", "radio saturée"],
+    "failure_mode": "Astroworld (Houston, 2021) — afflux massif vers la scène, barrières insuffisantes, alertes densité traitées trop tard ; victime en arrêt cardiaque dans la foule compactée, délai d'accès RCP fatal faute de secouristes au point chaud.",
+    "weave_value": "Weave détecte Z8 sous-effectif RCP (Bastien seul, DAE faible batterie) avant l'appel ; propose Ibrahim (sécu) pour tenir la barrière + Bastien primary RCP + Prakash backfill Z8 depuis Z2 avec DAE opérationnel.",
+    "dispatch_expected": {
+      "primary": "W5 (Bastien) — seul RCP sur Z8, plus proche malgré DAE faible",
+      "secu_hold": "W2 (Ibrahim) — barrière nord Z5→Z8, évite aggravation crush",
+      "backfill": "W4 (Prakash) → Z8 — RCP + DAE batterie OK, crée trou Z2 (required_min RCP)",
+      "reserve": "R1 → Z2 — comble le trou RCP Grand Huit",
+      "coord": "W1 (Nathan) — reste Z5, radio CC, ne pas retirer les deux chefs de Z5",
+      "rationale": "Ne pas vider Z5 (Nathan+Ibrahim) simultanément ; cascade backfill obligatoire car Prakash quitte zone RCP-required."
+    }
+  },
+  {
+    "id": "HILLSBOROUGH-GATE",
+    "title": "Portillon · écrasement entrée + malaise adulte",
+    "subtitle": "Inspiré Hillsborough 1989 — funnel d'entrée sous-estimé",
+    "label": "S2 · portillon + malaise",
+    "transcript": "urgence entrée principale Z1, le portillon est bloqué, les gens s'écrasent contre les barrières, j'vois au moins deux personnes au sol, et en plus y'a un monsieur malaise sévère côté parking qui saigne de la tête, on sait pas si c'est lié, on a personne médical ici c'est que de la sécu",
+    "lang": "fr",
+    "zone_hint": "Z1",
+    "severity": 5,
+    "pressures": ["funnel crush Z1", "malaise concurrent Z10", "aucun médical sur site", "fausse piste lien entre incidents"],
+    "failure_mode": "Hillsborough (Sheffield, 1989) — capacité d'accueil du funnel d'entrée mal calibrée, pression latérale sur barrières, secours concentrés sur un point alors qu'un second malaise éclate à proximité.",
+    "weave_value": "Dispatch différencié : R3 (sécu) primary Z1 crush + R2 (médical reserve) vers Z10 ; alerte si R1 seul reste en pool — pas de double-tir depuis Z5.",
+    "dispatch_expected": {
+      "primary": "R3 (Réserve R3) — seul sécu disponible proche Z1",
+      "medical_secondary": "R2 (Réserve R2) → Z10 — malaise tête, indépendant du crush",
+      "witness": "W1 (Nathan) — nearby_notice Z5, prépare redirection flux",
+      "backfill": "aucun depuis W1/W2 — Z5 minimum tenu",
+      "rationale": "Mauvaise compétence proche (sécu sans medic sur Z1) ; Weave route le médical depuis reserve pool, pas depuis Z6 où Ali est seul pédiatrique."
+    }
+  },
+  {
+    "id": "LOVE-PARADE-CASCADE",
+    "title": "Tunnel · cascade backfill + surcharge Place Centrale",
+    "subtitle": "Inspiré Love Parade Duisburg 2010 — goulot et cascade",
+    "label": "S3 · cascade goulot",
+    "transcript": "alerte densité, tout le monde converge vers la place centrale depuis le food court, le couloir Z7 vers Z5 est bloqué, on a besoin de renforts sécu sur Z5 maintenant, et en même temps malaise femme enceinte au milieu du flux, elle respire mal, impossible de la sortir sans couper la foule",
+    "lang": "fr",
+    "zone_hint": "Z5",
+    "severity": 5,
+    "pressures": ["goulot Z7→Z5", "malaise grossesse", "densité convergente", "Z6 déjà sous-effectif"],
+    "failure_mode": "Love Parade (Duisburg, 2010) — convergence vers un goulot unique, retirer du personnel du secteur adjacent sans re-couvrir crée un trou en chaîne ; malaise au centre du flux impossible à extraire sans régulation.",
+    "weave_value": "Moteur cascade : Ibrahim primary sécu Z5 (tenir goulot) + Ali détaché Z6→Z5 pour malaise (medic) → backfill R2 sur Z6 obligatoire + coverage_warning Z6 pédiatrique.",
+    "dispatch_expected": {
+      "primary_sec": "W2 (Ibrahim) — sécu, tient le goulot Z7→Z5",
+      "primary_med": "W3 (Ali) — medic/RCP, seul bilingote disponible pour malaise",
+      "backfill": "R2 (Réserve R2) → Z6 — poste enfants ne peut rester vide",
+      "coord": "W1 (Nathan) — coord radio, ne bouge pas",
+      "rationale": "Tirer Nathan+Ibrahim laisse Z5 aveugle ; Ali quitte Z6 pédiatrique → cascade backfill non négociable."
+    }
+  },
+  {
+    "id": "PEDIATRIC-DUAL",
+    "title": "Double appel · enfant inconscient + adulte RCP scène",
+    "subtitle": "Cas réaliste — concurrence pédiatrique vs adulte",
+    "label": "S4 · pédiatrique vs adulte",
+    "transcript": "poste médical enfants fermé répète fermé, enfant inconscient zone kids, convulsions, parents en panique en arabe je comprends pas tout, ET en même temps arrêt cardiaque signalé manège extrême côté anglais, deux appels en même temps priorité laquelle",
+    "lang": "fr",
+    "zone_hint": "Z6",
+    "severity": 5,
+    "pressures": ["enfant inconscient Z6", "arrêt cardiaque Z8 concurrent", "barrière langue AR + EN", "Ali seul medic qualifié"],
+    "failure_mode": "Concurrence ressources rares — un seul secouriste pédiatrique/bilingue vs incident adulte severity 5 simultané ; erreur classique : tout envoyer sur le plus bruyant (Z8) et laisser Z6 sans réponse.",
+    "weave_value": "Priorisation multi-incident : Ali primary Z6 (pédiatrique, langue AR) + Bastien primary Z8 (RCP déjà sur zone) + Prakash nearby_notice Z8 ; R2 en renfort Z6 si Ali saturé.",
+    "dispatch_expected": {
+      "primary_z6": "W3 (Ali) — seul medic pédiatrique + arabe, reste primary Z6",
+      "primary_z8": "W5 (Bastien) — déjà sur Z8, RCP sans se déplacer",
+      "nearby": "W4 (Prakash) — nearby_notice Z8, backup RCP si Bastien échoue",
+      "reserve": "R2 → Z6 — renfort si Ali seul insuffisant",
+      "rationale": "Ne pas retirer Ali pour Z8 ; Bastien couvre Z8 localement ; langue AR critique sur Z6."
+    }
+  },
+  {
+    "id": "DAE-BATTERY-FAIL",
+    "title": "DAE HS · arrêt cardiaque sortie manège",
+    "subtitle": "Contrainte matérielle — DAE déchargé en zone RCP-required",
+    "label": "S5 · DAE batterie morte",
+    "transcript": "manège extrême sortie nord, homme au sol pas de pouls, le DAE du poste affiche batterie morte j'ai essayé de le rallumer, demande renfort RCP avec appareil, y'a du monde partout autour du rail de queue, le secu le plus proche c'est… euh Ibrahim mais il est loin côté place centrale",
+    "lang": "fr",
+    "zone_hint": "Z8",
+    "severity": 5,
+    "pressures": ["DAE Z8 HS", "arrêt cardiaque", "foule queue sortie", "Ibrahim mauvaise compétence (sécu sans RCP certifié)"],
+    "failure_mode": "Échec matériel en point chaud — DAE non maintenu, secouriste local sans backup appareil ; envoyer sécu non-RCP = perte de temps (compétence incompatible).",
+    "weave_value": "Bastien primary (RCP sur place) + Prakash backfill avec DAE Z2 opérationnel ; refuse Ibrahim comme primary (skill mismatch) ; scan repositionnement pré-positionne R1 vers Z8 avant prochain incident.",
+    "dispatch_expected": {
+      "primary": "W5 (Bastien) — RCP immédiat mains seules en attendant DAE",
+      "backfill": "W4 (Prakash) → Z8 — apporte DAE batterie OK",
+      "rejected": "W2 (Ibrahim) — secu only, nearby_notice pour tenir foule pas pour RCP",
+      "backfill_chain": "R1 → Z2 — comble trou RCP Grand Huit",
+      "rationale": "Compétence proche ≠ bonne compétence ; contrainte matérielle force cascade depuis Z2."
+    }
+  },
+  {
+    "id": "LANG-EN-CRUSH",
+    "title": "Témoin anglophone · crush + détresse respiratoire",
+    "subtitle": "Inspiré Astroworld — barrière langue + signalement tardif",
+    "label": "S6 · langue EN + densité",
+    "transcript": "emergency emergency main stage extreme ride someone can't breathe crushed against barrier we need medic NOW people are pushing from behind I can't reach him",
+    "lang": "en",
+    "zone_hint": "Z8",
+    "severity": 5,
+    "pressures": ["témoin anglophone", "détresse respiratoire en crush", "barrière compréhension", "densité arrière pousse"],
+    "failure_mode": "Astroworld — signalements en langue étrangère mal routés ou traduits tardivement ; témoin stressé, infos incomplètes (respiration vs arrêt cardiaque).",
+    "weave_value": "Pipeline multilingue EN→FR ; dispatch Bastien (RCP, en) primary + Ibrahim nearby_notice sécu barrière ; Prakash (hi/en) en backup si touriste indien dans le groupe.",
+    "dispatch_expected": {
+      "primary": "W5 (Bastien) — RCP + anglais, sur Z8",
+      "secu": "W2 (Ibrahim) — nearby_notice, libère accès barrière",
+      "backup_lang": "W4 (Prakash) — en/hi si groupe touristique mixte",
+      "coord": "W1 (Nathan) — traduit consignes radio pour équipes FR",
+      "rationale": "Langue du témoin ≠ langue du staff le plus proche ; Weave matche compétence + langue + zone."
+    }
+  },
+  {
+    "id": "FALSE-ALARM-REAL",
+    "title": "Fausse alerte fumée + vrai malaise · double déclenchement",
+    "subtitle": "Cas opérationnel — priorisation bruit vs gravité",
+    "label": "S7 · fausse alerte vs réel",
+    "transcript": "food court rapports odeur brûlé peut-être fumée stand kebab, et… attendez, confirmé malaise grave place centrale dame agée inconsciente pas de pouls, le premier appel c'était peut-être une friteuse hein",
+    "lang": "fr",
+    "zone_hint": "Z5",
+    "severity": 5,
+    "pressures": ["fausse alerte Z7 fumée", "vrai arrêt cardiaque Z5", "ambiguïté opérateur", "R2 patrouille Z7 tenté"],
+    "failure_mode": "Saturation opérateur — deux appels simultanés, le bruit (fumée) capte l'attention alors que le malaise Z5 est severity 5 ; retard de dispatch fatal.",
+    "weave_value": "Scoring gravité : primary Nathan ou Ali rerouté Z5 (RCP) prioritaire ; R2 reste observer Z7 (severity 2) ; pas de mobilisation cascade pour fausse alerte.",
+    "dispatch_expected": {
+      "primary": "W1 (Nathan) — RCP+coord, sur Z5 déjà, primary immédiat",
+      "secondary": "W3 (Ali) — nearby_notice ou backup RCP si Nathan sur malaise",
+      "low_priority": "R2 — observe Z7 fumée, pas de déplacement cascade",
+      "rationale": "Severity scoring évite de vider le pool sur fausse alerte ; chef de secteur local = fastest RCP."
+    }
+  },
+  {
+    "id": "UNDERSTAFF-COVERAGE",
+    "title": "Sous-effectif global · repositionnement trop lent",
+    "subtitle": "Synthèse — vue temps réel vs radio saturée",
+    "label": "S8 · sous-effectif + retard",
+    "transcript": "direction ops, on est en sous-effectif sur trois zones, grand huit manque un RCP depuis vingt minutes, zone kids un seul secouriste, manège extrême pareil, la foule monte vers vingt heures, est-ce qu'on peut repositionner avant que ça parte en couille",
+    "lang": "fr",
+    "zone_hint": "Z5",
+    "severity": 4,
+    "pressures": ["Z2 sous RCP min", "Z6 seul agent", "Z8 seul agent", "afflux 20h prévu", "pas d'incident actif"],
+    "failure_mode": "Astroworld / Love Parade — réponse réactive uniquement ; pas de repositionnement proactif avant le pic, comms radio saturées au moment du crush.",
+    "weave_value": "Scan repositionnement pré-incident : R1→Z2 (RCP), R3→Z8 (sécu+first-aid), maintien Ali Z6 ; guidance GPS avant pic densité.",
+    "dispatch_expected": {
+      "proactive": "R1 → Z2, R3 → Z8 — scan_reposition sans incident",
+      "hold": "W3 (Ali) — reste Z6, pas de prélèvement",
+      "coord": "W1 (Nathan) — valide plan depuis Z5",
+      "rationale": "Proactif > réactif ; Weave simule impact couverture avant dispatch d'urgence."
+    }
+  }
+]

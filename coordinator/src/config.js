@@ -109,14 +109,40 @@ export function anchorZones(zones, parkLat, parkLon) {
   }));
 }
 
-export function loadSeed() {
-  const zones = anchorZones(
+const ROSTER_FILES = {
+  prod: 'roster.json',
+  demo: 'roster-weave.json',
+};
+
+function loadZones() {
+  return anchorZones(
     JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8')),
     config.gps.parkLat,
     config.gps.parkLon,
   );
-  const roster = JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
-  return { zones, roster };
+}
+
+function loadRosterFile(name) {
+  return JSON.parse(readFileSync(resolve(DATA_DIR, name), 'utf8'));
+}
+
+/** Seed prod (tests, kickoff) — toujours roster.json. */
+export function loadSeed() {
+  return { zones: loadZones(), roster: loadRosterFile(ROSTER_FILES.prod) };
+}
+
+/** Seed démo jury (roster équipe Weave). */
+export function loadDemoSeed() {
+  return { zones: loadZones(), roster: loadRosterFile(ROSTER_FILES.demo) };
+}
+
+export function loadScenariosDemo() {
+  return JSON.parse(readFileSync(resolve(DATA_DIR, 'scenarios-demo.json'), 'utf8'));
+}
+
+/** Au boot : DEMO_ROSTER=true charge roster-weave.json (page /demo). */
+export function isDemoRosterMode() {
+  return String(process.env.DEMO_ROSTER ?? '').toLowerCase() === 'true';
 }
 
 export function loadMockFixtures() {

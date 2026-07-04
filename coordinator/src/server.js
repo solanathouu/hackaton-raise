@@ -9,7 +9,15 @@ import os from 'node:os';
 import express from 'express';
 import { Server as SocketServer } from 'socket.io';
 
-import { config, loadSeed, assertCrusoeLiveWorkflowOrExit, validateCrusoeLiveWorkflow } from './config.js';
+import {
+  config,
+  loadSeed,
+  loadDemoSeed,
+  loadScenariosDemo,
+  isDemoRosterMode,
+  assertCrusoeLiveWorkflowOrExit,
+  validateCrusoeLiveWorkflow,
+} from './config.js';
 import { buildState, serializeState, setPosition, setStatus, commitAgents, nextIncidentId, addConstraint } from './state.js';
 import { candidatesPrimary, candidatesBackfill, zoneById } from './engine.js';
 import { computeRepositionHints, hintForAgentId, resolveGpsZone } from './guidance.js';
@@ -20,7 +28,8 @@ import { prewarmCrusoe } from './integrations/crusoe.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-let state = buildState(loadSeed());
+let demoMode = isDemoRosterMode();
+let state = buildState(demoMode ? loadDemoSeed() : loadSeed());
 
 // Contexte runtime des incidents (timers d'accusé + re-route).
 const ackTimers = new Map();       // assignmentId -> timeout
@@ -49,6 +58,8 @@ app.get('/health', (_req, res) => {
   });
 });
 app.get('/api/state', (_req, res) => res.json(serializeState(state)));
+app.get('/api/scenarios-demo', (_req, res) => res.json(loadScenariosDemo()));
+app.get('/demo', (_req, res) => res.sendFile(resolve(ROOT, '../app/public/demo.html')));
 app.get('/api/position-logs', (_req, res) => {
   const limit = Math.min(Number(_req.query.limit) || 50, 200);
   const path = resolve(ROOT, config.gps.logPath);
@@ -77,6 +88,16 @@ function createServer(expressApp) {
 }
 
 const broadcastState = () => io.emit('state', serializeState(state));
+
+function resetState(useDemo = false) {
+  for (const t of ackTimers.values()) clearTimeout(t);
+  ackTimers.clear();
+  incidentCtx.clear();
+  demoMode = useDemo;
+  state = buildState(useDemo ? loadDemoSeed() : loadSeed());
+  broadcastState();
+  console.log(`[reset] état rechargé (${useDemo ? 'roster-weave démo' : 'roster prod'})`);
+}
 
 function emitGuidance(hint) {
   if (!hint) return;
@@ -293,13 +314,9 @@ io.on('connection', (socket) => {
     io.emit('override_log', { incidentId, newAgentId, reason });
   });
 
-  // Helper démo : reset état depuis le seed (répétitions).
-  socket.on('reset', () => {
-    for (const t of ackTimers.values()) clearTimeout(t);
-    ackTimers.clear(); incidentCtx.clear();
-    state = buildState(loadSeed());
-    broadcastState();
-    console.log('[reset] état rechargé depuis le seed');
+  // Helper démo : reset état depuis le seed (répétitions). demo:true → roster-weave.json
+  socket.on('reset', ({ demo } = {}) => {
+    resetState(Boolean(demo) || demoMode);
   });
 
   socket.on('disconnect', () => {
@@ -326,7 +343,8 @@ server.listen(config.port, '0.0.0.0', () => {
   for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
     for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`   LAN (${name}) : ${proto}://${a.address}:${config.port}`);
   }
-  console.log('   /health · /api/state · WS Socket.io\n');
+  if (demoMode) console.log('   🎬 DEMO_ROSTER=true — roster équipe Weave actif · /demo');
+  console.log('   /health · /api/state · /demo · WS Socket.io\n');
 });
 
 export { app, io, server };
