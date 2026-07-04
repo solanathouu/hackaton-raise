@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Conductor - Live Dispatch Simulation</title>
+  </head>
+  <body>
+    <main id="app">
+      <section class="viewport">
+        <div id="scene"></div>
+        <div id="labels"></div>
+        <div class="hud top-left">
+          <div class="brand-lockup">
+            <span class="signal-dot"></span>
+            <div>
+              <strong>Conductor</strong>
+              <span>live venue dispatch coordinator</span>
+            </div>
+          </div>
+          <div class="metrics">
+            <div>
+              <strong id="metricResponse">0s</strong>
+              <span>last response</span>
+            </div>
+            <div>
+              <strong id="metricCoverage">100%</strong>
+              <span>coverage</span>
+            </div>
+            <div>
+              <strong id="metricIncidents">0</strong>
+              <span>active</span>
+            </div>
+          </div>
+        </div>
+        <div class="hud bottom-left">
+          <button id="voiceToggle" class="pill-button primary" type="button">Enable voice</button>
+          <button id="resetBtn" class="pill-button" type="button">Reset shift</button>
+          <button id="cameraBtn" class="pill-button" type="button">Camera: orbit</button>
+        </div>
+      </section>
+
+      <aside class="control-panel">
+        <div class="panel-section">
+          <p class="eyebrow">Operator console</p>
+          <h1>Make the crowd collapse. Watch coverage stay alive.</h1>
+          <p class="subcopy">Each report is parsed into incident type, zone, urgency, and required skills. Conductor sends one qualified responder, then backfills the coverage gap before it becomes the next incident.</p>
+        </div>
+
+        <div class="panel-section controls-grid">
+          <button class="incident-button" data-zone="Z2" type="button">
+            <span>Collapse at Grand Huit</span>
+            <small>Surplus pull, no gap</small>
+          </button>
+          <button class="incident-button hot" data-zone="Z8" type="button">
+            <span>Collapse at Extreme Ride</span>
+            <small>Primary + backfill</small>
+          </button>
+          <button class="incident-button" data-zone="Z6" type="button">
+            <span>Collapse in Kids Zone</span>
+            <small>Medic dispatch</small>
+          </button>
+          <button class="incident-button" data-zone="Z1" data-language="es" type="button">
+            <span>Spanish report at Entry</span>
+            <small>Reserve + translated alert</small>
+          </button>
+          <button class="incident-button wide" id="randomCollapseBtn" type="button">
+            <span>Collapse random guest</span>
+            <small>Stress the live model again</small>
+          </button>
+        </div>
+
+        <div class="panel-section compact">
+          <label class="toggle-row">
+            <input id="timeoutToggle" type="checkbox" />
+            <span>Force first alert timeout, then reroute</span>
+          </label>
+          <label class="toggle-row">
+            <input id="protectToggle" type="checkbox" />
+            <span>Operator override: protect Grand Huit CPR pair</span>
+          </label>
+        </div>
+
+        <div class="panel-section operator-actions">
+          <button id="approveBtn" class="small-command approve" type="button">Approve plan</button>
+          <button id="whyBtn" class="small-command" type="button">Ask why</button>
+          <button id="overrideBtn" class="small-command override" type="button">Override</button>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-header">
+            <h2>Decision trace</h2>
+            <span id="modeBadge">fallback deterministic</span>
+          </div>
+          <div id="decisionCards" class="decision-cards"></div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-header">
+            <h2>Coverage model</h2>
+            <span>min + skills</span>
+          </div>
+          <div id="coverageList" class="coverage-list"></div>
+        </div>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
