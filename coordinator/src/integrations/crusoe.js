@@ -114,8 +114,13 @@ export function validateDecision(raw, snapshot) {
   }
 
   // Zone détectée (detectZone) prime sur le LLM : on aligne au lieu de rejeter (apport P4).
+  // EXCEPTION : si la zone n'est qu'un DÉFAUT (zone_source='default' = aucun mot-clé reconnu
+  // dans le transcript), la compréhension du LLM prime — sinon tout incident formulé hors
+  // vocabulaire atterrit silencieusement à la première zone (l'Entrée).
+  const zoneIsDefault = snapshot?.incident?.zone_source === 'default';
+  const knownZones = new Set((snapshot?.zones || []).map((z) => z.id));
   if (incidentZone && decision.zone_id !== incidentZone) {
-    decision.zone_id = incidentZone;
+    if (!zoneIsDefault || !knownZones.has(decision.zone_id)) decision.zone_id = incidentZone;
   }
 
   const rawBackfills = Array.isArray(raw.backfills) ? raw.backfills.slice(0, 2) : [];

@@ -81,3 +81,40 @@ test('alignPrimaryToOptimal — choisit le plus proche qualifié', () => {
   assert.equal(aligned.primary_id, 'A7');
   assert.ok(aligned.constraints_applied.some((c) => c.includes('realigné')));
 });
+
+// --- zone_source : la zone LLM prime quand detectZone n'a RIEN reconnu (défaut) -------------
+const SNAPSHOT_DEFAULT_ZONE = {
+  // detectZone a raté -> zone_id = première zone (Z1), marquée 'default'.
+  incident: { transcript: 'a man collapsed at the merry-go-round', lang: 'en', zone_id: 'Z1', zone_source: 'default' },
+  zones: [
+    { id: 'Z1', name: 'Entrance', headcount: 1, required_min: 1, surplus: 0, required_skills: [] },
+    { id: 'Z8', name: 'Extreme Ride', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] },
+  ],
+  constraints: [],
+  candidates_primary: [
+    { id: 'A7', name: 'Hugo', skills: ['RCP'], current_zone: 'Z8', travel_time_s: 0, is_reserve: false, safe: true },
+  ],
+  candidates_backfill_by_zone: {},
+};
+const rawLlm = (zone) => ({
+  incident_type: 'cardiac_arrest', zone_id: zone, skills_needed: ['RCP'], severity: 5,
+  primary_id: 'A7', backfills: [], justification: 'test', constraints_applied: [],
+});
+
+test('zone_source=default — la zone comprise par le LLM est CONSERVÉE (pas de retour forcé au défaut)', () => {
+  const { ok, decision } = validateDecision(rawLlm('Z8'), SNAPSHOT_DEFAULT_ZONE);
+  assert.ok(ok);
+  assert.equal(decision.zone_id, 'Z8'); // avant le fix : forcée à Z1 (Entrée)
+});
+
+test('zone_source=default — une zone LLM INCONNUE retombe sur le défaut (pas de zone fantôme)', () => {
+  const { decision } = validateDecision(rawLlm('Z99'), SNAPSHOT_DEFAULT_ZONE);
+  assert.equal(decision.zone_id, 'Z1');
+});
+
+test('zone_source absent/détecté — comportement historique intact : la zone détectée prime', () => {
+  const snapDetected = { ...SNAPSHOT_DEFAULT_ZONE, incident: { ...SNAPSHOT_DEFAULT_ZONE.incident, zone_source: 'detected' } };
+  assert.equal(validateDecision(rawLlm('Z8'), snapDetected).decision.zone_id, 'Z1');
+  const snapLegacy = { ...SNAPSHOT_DEFAULT_ZONE, incident: { transcript: 'x', lang: 'en', zone_id: 'Z1' } };
+  assert.equal(validateDecision(rawLlm('Z8'), snapLegacy).decision.zone_id, 'Z1');
+});

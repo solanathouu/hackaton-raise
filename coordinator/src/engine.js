@@ -168,7 +168,7 @@ export function candidatesNearbyNotice(state, incidentZoneId, skillsNeeded, excl
 // ---------------------------------------------------------------------------
 // Snapshot (Contrat B) — passé tel quel au LLM.
 // ---------------------------------------------------------------------------
-export function buildSnapshot(state, incidentZoneId, { transcript = '', lang = 'fr' } = {}) {
+export function buildSnapshot(state, incidentZoneId, { transcript = '', lang = 'fr', zone_source } = {}) {
   const z = zoneById(state, incidentZoneId);
   const skillsHint = z?.required_skills?.length ? z.required_skills : [];
   const cPrimary = candidatesPrimary(state, incidentZoneId, skillsHint);
@@ -186,7 +186,9 @@ export function buildSnapshot(state, incidentZoneId, { transcript = '', lang = '
   }
 
   return {
-    incident: { transcript, lang, zone_id: incidentZoneId },
+    // zone_source (additif) : 'detected' = mot-clé reconnu dans le transcript ; 'default' =
+    // AUCUN mot-clé reconnu, zone_id n'est qu'un défaut -> la zone comprise par le LLM prime.
+    incident: { transcript, lang, zone_id: incidentZoneId, ...(zone_source ? { zone_source } : {}) },
     zones: state.zones.map((zz) => ({
       id: zz.id,
       name: zz.name,
