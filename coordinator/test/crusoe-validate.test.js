@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { validateDecision, extractDecisionJson, alignPrimaryToOptimal } from '../src/integrations/crusoe.js';
 
 const SNAPSHOT = {
-  incident: { transcript: 'arrêt cardiaque au manège extrême', lang: 'fr', zone_id: 'Z8' },
-  zones: [{ id: 'Z8', name: 'Manège Extrême', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] }],
+  incident: { transcript: 'cardiac arrest at the extreme ride', lang: 'en', zone_id: 'Z8' },
+  zones: [{ id: 'Z8', name: 'Extreme Ride', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] }],
   constraints: [],
   candidates_primary: [
     { id: 'A7', name: 'Hugo', skills: ['RCP'], current_zone: 'Z8', travel_time_s: 0, is_reserve: false, safe: true },

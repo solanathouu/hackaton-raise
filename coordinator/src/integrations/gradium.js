@@ -74,7 +74,9 @@ async function gradiumTtsRequest(body) {
 export async function transcribe(audio, { lang, strict = false } = {}) {
   if (config.mockGradium) {
     const fx = loadMockFixtures();
-    return lang === 'es' ? fx.transcribe_es : fx.transcribe_fr; // hint 'es' pour la démo S4
+    if (lang === 'es') return fx.transcribe_es;
+    if (lang === 'fr') return fx.transcribe_fr;
+    return fx.transcribe_en;
   }
   const buf = Buffer.isBuffer(audio) ? audio : Buffer.from(audio, 'base64');
   try {
@@ -91,7 +93,7 @@ export async function transcribe(audio, { lang, strict = false } = {}) {
     }
     // Dernier filet : fixture déterministe, le pipeline continue (jamais d'écran figé).
     const fx = loadMockFixtures();
-    return lang === 'es' ? fx.transcribe_es : fx.transcribe_fr;
+    return lang === 'es' ? fx.transcribe_es : lang === 'fr' ? fx.transcribe_fr : fx.transcribe_en;
   }
 }
 

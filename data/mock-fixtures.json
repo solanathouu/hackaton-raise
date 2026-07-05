@@ -1,14 +1,15 @@
 {
   "_note": "Fixtures illustratives du kickoff (section 4). Utilisées par les intégrations en USE_MOCKS=true (crusoe/gradium). NB: le moteur (engine.js) NE lit PAS ce fichier — il calcule les vraies valeurs Floyd-Warshall sur zones.json/roster.json. Ex: le trajet Paul Z9->Z8 vaut 205s réel, 130s ici (approximation à la main).",
+  "transcribe_en": { "text": "cardiac arrest at the extreme ride, he is not breathing", "lang": "en" },
   "transcribe_fr": { "text": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr" },
   "transcribe_es": { "text": "un hombre se desplomó en la entrada, no respira", "lang": "es" },
   "snapshot": {
-    "incident": { "transcript": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr", "zone_id": "Z8" },
+    "incident": { "transcript": "cardiac arrest at the extreme ride, he is not breathing", "lang": "en", "zone_id": "Z8" },
     "zones": [
-      { "id":"Z8","name":"Manège Extrême","headcount":2,"required_min":2,"surplus":0,"required_skills":["RCP"] },
-      { "id":"Z2","name":"Grand Huit","headcount":3,"required_min":2,"surplus":1,"required_skills":["RCP"] },
-      { "id":"Z5","name":"Place Centrale","headcount":3,"required_min":2,"surplus":1,"required_skills":[] },
-      { "id":"Z4","name":"Rivière Sauvage","headcount":1,"required_min":1,"surplus":0,"required_skills":["RCP"] }
+      { "id":"Z8","name":"Extreme Ride","headcount":2,"required_min":2,"surplus":0,"required_skills":["RCP"] },
+      { "id":"Z2","name":"Roller Coaster","headcount":3,"required_min":2,"surplus":1,"required_skills":["RCP"] },
+      { "id":"Z5","name":"Central Plaza","headcount":3,"required_min":2,"surplus":1,"required_skills":[] },
+      { "id":"Z4","name":"Wild River","headcount":1,"required_min":1,"surplus":0,"required_skills":["RCP"] }
     ],
     "constraints": [],
     "candidates_primary": [
@@ -30,11 +31,11 @@
     "primary_id": "A7",
     "backfills": [ { "agent_id": "A1", "target_zone": "Z8" } ],
     "warning": null,
-    "justification": "Hugo (RCP) est sur zone au Manège Extrême, il intervient. Marco (RCP) vient du Grand Huit en surplus pour maintenir la couverture.",
+    "justification": "Hugo (RCP) is on scene at Extreme Ride and responds. Marco (RCP) backfills from Roller Coaster surplus to maintain coverage.",
     "constraints_applied": []
   },
   "speak": { "audioUrl": "/mock/tts-sample.mp3" },
-  "ws_dispatch_primary": { "assignmentId":"as_1","incidentId":"inc_1","role":"primary","targetZone":"Z8","text":"Arrêt cardiaque au Manège Extrême, tu es le plus proche. Vas-y.","audioUrl":"/mock/tts-sample.mp3","lang":"fr" },
-  "ws_dispatch_backfill": { "assignmentId":"as_2","incidentId":"inc_1","role":"backfill","targetZone":"Z8","text":"Rejoins le Manège Extrême pour maintenir la couverture.","audioUrl":"/mock/tts-sample.mp3","lang":"fr" },
-  "ws_coverage_warning": { "zoneId":"Z6","etaSec":180,"message":"Zone Enfants tombera sous le minimum ~3 min. Accepter / réassigner ?" }
+  "ws_dispatch_primary": { "assignmentId":"as_1","incidentId":"inc_1","role":"primary","targetZone":"Z8","text":"Cardiac arrest at Extreme Ride, you are the closest. Go now.","audioUrl":"/mock/tts-sample.mp3","lang":"en" },
+  "ws_dispatch_backfill": { "assignmentId":"as_2","incidentId":"inc_1","role":"backfill","targetZone":"Z8","text":"Move to Extreme Ride to keep coverage.","audioUrl":"/mock/tts-sample.mp3","lang":"en" },
+  "ws_coverage_warning": { "zoneId":"Z6","etaSec":180,"message":"Kids Zone will fall below minimum in ~3 min. Accept / reassign?" }
 }

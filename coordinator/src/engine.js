@@ -407,15 +407,15 @@ const norm = (s) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const ZONE_ALIASES = {
-  Z1: ['entree', 'entrada', 'entrance', 'porte'],
-  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster'],
-  Z3: ['grande roue', 'noria', 'ferris'],
-  Z4: ['riviere', 'river', 'rapids', 'rapide'],
-  Z5: ['place centrale', 'plaza', 'central'],
-  Z6: ['zone enfants', 'enfants', 'ninos', 'kids', 'children'],
+  Z1: ['entree', 'entrada', 'entrance', 'entry', 'porte'],
+  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster', 'rollercoaster'],
+  Z3: ['grande roue', 'ferris wheel', 'noria', 'ferris'],
+  Z4: ['riviere sauvage', 'riviere', 'wild river', 'river', 'rapids', 'rapide'],
+  Z5: ['place centrale', 'central plaza', 'plaza', 'central'],
+  Z6: ['zone enfants', 'kids zone', 'enfants', 'ninos', 'kids', 'children'],
   Z7: ['food court', 'restauration', 'comida', 'food'],
-  Z8: ['manege extreme', 'manege', 'extreme'],
-  Z9: ['boutique', 'tienda', 'shop', 'magasin'],
+  Z8: ['manege extreme', 'extreme ride', 'manege', 'extreme'],
+  Z9: ['boutiques', 'boutique', 'tienda', 'shops', 'shop', 'magasin'],
   Z10: ['parking', 'aparcamiento'],
 };
 
