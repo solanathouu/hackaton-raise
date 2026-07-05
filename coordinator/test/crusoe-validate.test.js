@@ -65,6 +65,28 @@ test('extractDecisionJson — parse fence markdown', () => {
   assert.equal(obj.primary_id, 'A7');
 });
 
+test('extractDecisionJson — fallback reasoning field (Nemotron)', () => {
+  const obj = extractDecisionJson({
+    content: null,
+    reasoning: 'Step 1 done.\n{"primary_id":"A7","zone_id":"Z8"}',
+  });
+  assert.equal(obj.primary_id, 'A7');
+  assert.equal(obj.zone_id, 'Z8');
+});
+
+test('extractDecisionJson — JSON noyé dans du raisonnement', () => {
+  const obj = extractDecisionJson({
+    content: null,
+    reasoning: 'We need to output JSON.\n\n{"incident_type":"arret_cardiaque","primary_id":"A7"}',
+  });
+  assert.equal(obj.incident_type, 'arret_cardiaque');
+  assert.equal(obj.primary_id, 'A7');
+});
+
+test('extractDecisionJson — rejette message vide', () => {
+  assert.throws(() => extractDecisionJson({ content: null, reasoning: null }), /réponse LLM vide/);
+});
+
 test('alignPrimaryToOptimal — choisit le plus proche qualifié', () => {
   const raw = {
     incident_type: 'arret_cardiaque',
