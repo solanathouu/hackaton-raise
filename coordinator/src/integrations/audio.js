@@ -36,6 +36,26 @@ export async function hasFfmpeg() {
   return ffmpegChecked;
 }
 
+// Complément au fix « fichier temp » (input) : ffmpeg écrit toujours le WAV vers un PIPE
+// (stdout non-seekable) -> il ne peut pas revenir inscrire les tailles RIFF/data et pose un
+// placeholder 0xFFFFFFFF. Un décodeur STT strict lit alors « 4 Go de data » et échoue (audio
+// reçu mais ILLISIBLE). On réécrit les 2 tailles d'après la longueur réelle du buffer.
+const U32_MAX = 0xffffffff;
+export function fixWavHeaderSizes(buf) {
+  if (buf.length < 44 || buf.subarray(0, 4).toString('ascii') !== 'RIFF') return buf;
+  if (buf.readUInt32LE(4) !== U32_MAX) return buf; // header déjà correct -> idempotent
+  buf.writeUInt32LE(buf.length - 8, 4); // taille RIFF = total - 8
+  let i = 12;
+  while (i + 8 <= buf.length) {
+    const id = buf.subarray(i, i + 4).toString('ascii');
+    if (id === 'data') { buf.writeUInt32LE(buf.length - (i + 8), i + 4); break; }
+    const sz = buf.readUInt32LE(i + 4);
+    if (sz <= 0 || sz > buf.length) break; // taille aberrante -> stop propre
+    i += 8 + sz + (sz & 1); // chunks alignés sur 2 octets
+  }
+  return buf;
+}
+
 // Convertit n'importe quelle entrée en WAV mono 16-bit au sample rate voulu
 // (Gradium PCM = 24kHz ; whisper.cpp = 16kHz).
 export function toWav(inputBuf, sampleRate = 24000) {
@@ -60,7 +80,7 @@ export function toWav(inputBuf, sampleRate = 24000) {
     p.on('error', (e) => { cleanup(); reject(e); });
     p.on('exit', (code) => {
       cleanup();
-      if (code === 0) resolve(Buffer.concat(out));
+      if (code === 0) resolve(fixWavHeaderSizes(Buffer.concat(out)));
       else reject(new Error(`ffmpeg exit ${code}: ${Buffer.concat(err).toString().slice(0, 200)}`));
     });
   });
