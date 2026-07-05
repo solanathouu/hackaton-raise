@@ -31,18 +31,27 @@
     }
     header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
     header h1 span { color:var(--dim); font-weight:600; letter-spacing:1.5px; }
-    .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; }
-    .dot.on { background:var(--ok); }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; transition:background .25s var(--ease), box-shadow .25s var(--ease); }
+    .dot.on { background:var(--ok); box-shadow:0 0 8px rgba(46,168,98,.45); }
     #clock { font:600 13px var(--mono); color:var(--dim); font-variant-numeric:tabular-nums; }
 
-    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:5px 9px; border-radius:6px; border:1px solid var(--line); }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
-    .badge.demo { background:#1a1533; color:#c4b5fd; border-color:#5b21b6; }
+    .badge.demo {
+      background:linear-gradient(135deg, #1a1533 0%, #251e45 100%);
+      color:#d4c4ff; border-color:#6d28d9; letter-spacing:1.1px;
+      box-shadow:0 0 14px rgba(109,40,217,.22), inset 0 1px 0 rgba(255,255,255,.06);
+    }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
-    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; }
-    .roster-toggle button { font:700 10px/1 -apple-system, system-ui, sans-serif; padding:7px 10px; border:none; background:var(--panel2); color:var(--dim); letter-spacing:.4px; }
-    .roster-toggle button.sel { background:#1a1533; color:#c4b5fd; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; background:var(--panel2); }
+    .roster-toggle button {
+      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:10px 12px; min-height:44px; min-width:44px;
+      border:none; background:transparent; color:var(--dim); letter-spacing:.5px;
+      transition:background .2s var(--ease), color .2s var(--ease);
+    }
+    .roster-toggle button.sel { background:#0c2030; color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+    .roster-toggle button[data-mode="demo"].sel { background:#1a1533; color:#d4c4ff; box-shadow:inset 0 -2px 0 #8b5cf6; }
     @keyframes pulse { 50% { opacity:.45; } }
 
     main { max-width:1280px; margin:0 auto; padding:14px 18px 24px; }

@@ -38,24 +38,55 @@
       box-shadow:var(--hairline), 0 4px 16px rgba(0,0,0,.25);
       position:sticky; top:0; z-index:5;
     }
-    header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
-    header .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; }
-    header .dot.on { background:var(--ok); }
+    header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; flex:none; }
+    header .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; transition:background .25s var(--ease), box-shadow .25s var(--ease); }
+    header .dot.on { background:var(--ok); box-shadow:0 0 8px rgba(46,168,98,.45); }
+    .header-badges { display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
     #who {
       font:600 13px/1 -apple-system, system-ui, sans-serif; color:var(--accent);
-      background:transparent; border:1px solid var(--line); border-radius:var(--r);
-      padding:7px 8px; max-width:150px;
+      background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
+      padding:10px 12px; max-width:150px; min-height:44px;
+      transition:border-color .2s var(--ease), background .2s var(--ease);
     }
+    #who:focus { outline:none; border-color:var(--accent); }
 
-    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:5px 9px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; transition:opacity .2s var(--ease); }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
-    .badge.demo { background:#1a1533; color:#c4b5fd; border-color:#5b21b6; }
+    .badge.demo {
+      background:linear-gradient(135deg, #1a1533 0%, #251e45 100%);
+      color:#d4c4ff; border-color:#6d28d9; letter-spacing:1.1px;
+      box-shadow:0 0 14px rgba(109,40,217,.22), inset 0 1px 0 rgba(255,255,255,.06);
+      max-width:none;
+    }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
-    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; }
-    .roster-toggle button { font:700 10px/1 -apple-system, system-ui, sans-serif; padding:7px 8px; border:none; background:var(--panel2); color:var(--dim); letter-spacing:.4px; }
-    .roster-toggle button.sel { background:#1a1533; color:#c4b5fd; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; background:var(--panel2); }
+    .roster-toggle button {
+      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:10px 12px; min-height:44px; min-width:44px;
+      border:none; background:transparent; color:var(--dim); letter-spacing:.5px;
+      transition:background .2s var(--ease), color .2s var(--ease);
+    }
+    .roster-toggle button.sel { background:#0c2030; color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+    .roster-toggle button[data-mode="demo"].sel { background:#1a1533; color:#d4c4ff; box-shadow:inset 0 -2px 0 #8b5cf6; }
     @keyframes pulse { 50% { opacity:.45; } }
+
+    /* ---- agent picker (demo team cards) ---- */
+    .agent-strip { display:none; gap:8px; padding:10px 16px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      background:var(--panel); border-bottom:1px solid var(--line); scrollbar-width:none; }
+    .agent-strip::-webkit-scrollbar { display:none; }
+    .agent-strip.on { display:flex; }
+    .agent-card {
+      flex:0 0 auto; min-width:108px; min-height:44px; padding:8px 10px; text-align:left;
+      background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); color:var(--txt);
+      cursor:pointer; transition:border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+    }
+    .agent-card:active { transform:scale(.97); }
+    .agent-card.sel { border-color:var(--accent); background:#0c2030; box-shadow:0 0 0 1px rgba(76,194,255,.15); }
+    .agent-card .agent-id { display:block; font:700 11px/1 var(--mono); color:var(--accent); letter-spacing:.5px; }
+    .agent-card .agent-name { display:block; font-size:12px; font-weight:600; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+    .agent-card .agent-role { display:block; font-size:9px; color:var(--dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+    .agent-card .agent-zone { display:inline-block; font:700 9px/1 var(--mono); color:var(--dim); margin-top:5px; padding:3px 6px; border-radius:4px; border:1px solid var(--line); background:var(--bg); }
+    .agent-card.sel .agent-zone { color:var(--accent); border-color:#1d4a63; }
 
     /* ---- vues ---- */
     main { max-width:640px; margin:0 auto; padding:16px 16px calc(76px + env(safe-area-inset-bottom)); }
@@ -70,6 +101,12 @@
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 60%);
       box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5);
       border:1px solid rgba(255,255,255,.05);
+      transition:box-shadow .25s var(--ease);
+    }
+    .ptt-shell:not(:has(.ptt.rec)) { animation:pttidle 3.2s ease-in-out infinite; }
+    @keyframes pttidle {
+      0%, 100% { box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5), 0 0 0 0 rgba(76,194,255,0); }
+      50% { box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5), 0 0 32px 4px rgba(76,194,255,.1); }
     }
     .ptt {
       width:min(60vw, 240px); height:min(60vw, 240px); border-radius:50%;
@@ -78,9 +115,9 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
       user-select:none; touch-action:none; cursor:pointer;
       box-shadow:inset 0 1px 1px rgba(255,255,255,.09), inset 0 -14px 26px rgba(0,0,0,.35);
-      transition:transform .18s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
+      transition:transform .18s var(--ease), border-color .25s var(--ease), background .25s var(--ease), box-shadow .18s var(--ease);
     }
-    .ptt:active { transform:scale(.96); }
+    .ptt:active { transform:scale(.94); box-shadow:inset 0 2px 8px rgba(0,0,0,.5), inset 0 -8px 16px rgba(0,0,0,.25); border-color:#3d4a5c; }
     .ptt .k { font-size:24px; font-weight:800; letter-spacing:4px; }
     .ptt .s { font-size:11px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
     .ptt.rec {
@@ -98,12 +135,21 @@
 
     /* ---- dispatchs (l'événement central) ---- */
     .dispatch {
-      background:linear-gradient(180deg, #131922, var(--panel) 55%);
-      border:1px solid var(--line); border-left:3px solid var(--accent);
-      border-radius:var(--r); padding:16px; margin-bottom:10px;
-      box-shadow:var(--hairline), var(--elev);
+      position:relative;
+      background:linear-gradient(180deg, #161c26, var(--panel) 55%);
+      border:1px solid #2a3340; border-left:4px solid var(--accent);
+      border-radius:var(--r); padding:16px 16px 16px 18px; margin-bottom:10px;
+      box-shadow:var(--hairline), var(--elev), inset 0 0 0 1px rgba(76,194,255,.04);
+      transition:opacity .3s var(--ease), border-color .25s var(--ease);
     }
-    .dispatch.done { opacity:.45; border-left-color:var(--ok); }
+    .dispatch::before {
+      content:'◉'; position:absolute; top:14px; right:14px;
+      font-size:13px; color:var(--accent); opacity:.55; line-height:1;
+    }
+    .dispatch.primary::before { color:var(--bad); }
+    .dispatch.witness::before { color:var(--dim); opacity:.35; }
+    .dispatch.done { opacity:.42; border-left-color:var(--ok); }
+    .dispatch.done::before { content:'✓'; color:var(--ok); opacity:.5; }
     /* liseré cohérent avec le tag de rôle */
     .dispatch.primary { border-left-color:var(--bad); }
     .dispatch.backfill { border-left-color:var(--accent); }
@@ -139,14 +185,16 @@
     .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
     .mapwrap svg:active { cursor:grabbing; }
     .znode { cursor:pointer; }
-    .zlabel { font:700 13px var(--mono); fill:var(--txt); pointer-events:none; }
+    .zlabel { font:700 14px var(--mono); fill:var(--txt); pointer-events:none; }
     .zsub { font:11px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; }
     .adotlabel { font:700 9px var(--mono); fill:#fff; pointer-events:none; }
     .edge { stroke:#1c232e; stroke-width:2; }
-    .route { stroke:var(--accent); stroke-width:5; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8; animation:dash 1s linear infinite; }
+    .route { stroke:var(--accent); stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8;
+      filter:drop-shadow(0 0 6px rgba(76,194,255,.45)); animation:dash 1s linear infinite; }
     @keyframes dash { to { stroke-dashoffset:-18; } }
-    .routebanner { display:none; margin-top:10px; padding:12px; background:#0c2030; border:1px solid #1d4a63; border-radius:var(--r); }
-    .routebanner.on { display:block; }
+    .routebanner { display:none; margin-top:10px; padding:14px; background:linear-gradient(180deg, #0e2436, #0c2030); border:1px solid #1d4a63; border-left:3px solid var(--accent); border-radius:var(--r); box-shadow:var(--hairline); }
+    .routebanner.on { display:block; animation:fadein .25s var(--ease); }
+    @keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
     .hint { font-size:11px; color:var(--dim); margin-top:8px; }
     .zones { display:grid; grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); gap:8px; }
     .zone { border:1px solid var(--line); border-radius:var(--r); padding:9px 10px; background:var(--bg); }
@@ -180,16 +228,25 @@
     nav button {
       flex:1; background:none; border:none; border-top:2px solid transparent;
       color:var(--dim); font:700 11px/1 -apple-system, system-ui, sans-serif;
-      letter-spacing:2px; padding:15px 0 13px;
+      letter-spacing:2px; padding:14px 0; min-height:48px;
+      transition:color .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease);
     }
+    nav button:active { background:rgba(255,255,255,.03); }
     nav button.on { color:var(--accent); border-top-color:var(--accent); }
 
     /* ---- guidance banner (proactive reposition) ---- */
-    .guidance { display:none; padding:10px 16px; background:#0c2030; border-bottom:1px solid #1d4a63; font-size:14px; }
-    .guidance.on { display:block; }
-    .guidance b { color:var(--accent); }
+    .guidance {
+      display:none; padding:12px 16px; background:linear-gradient(90deg, #0c2030, #11151c);
+      border-bottom:1px solid #1d4a63; font-size:14px; line-height:1.45;
+    }
+    .guidance.on { display:flex; gap:10px; align-items:flex-start; animation:fadein .25s var(--ease); }
+    .guidance-icon { flex:none; font:700 13px/1 var(--mono); color:var(--accent); padding-top:2px; }
+    .guidance-body { flex:1; min-width:0; }
+    .guidance b { color:var(--accent); font-weight:700; }
+    .guidance-go { margin-top:8px; font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; min-height:44px; }
+    .guidance-go:active { transform:scale(.97); }
     .gps-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
-    .gps-row button { font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:10px 12px; }
+    .gps-row button { font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; min-height:44px; transition:border-color .2s var(--ease), background .2s var(--ease); }
     .gps-row button.live { background:#0c2030; border-color:var(--accent); color:var(--accent); }
     #posStatus { font-size:11px; color:var(--dim); flex:1; min-width:140px; }
     .feed .pos { color:var(--accent); }
@@ -200,8 +257,10 @@
   <header>
     <span class="dot" id="dot"></span>
     <h1>CONDUCTOR</h1>
-    <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
-    <span id="mode" class="badge" style="display:none"></span>
+    <div class="header-badges">
+      <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
+      <span id="mode" class="badge" style="display:none"></span>
+    </div>
     <span style="flex:1"></span>
     <div class="roster-toggle" id="rosterToggle">
       <button type="button" data-mode="real" class="sel">Real</button>
@@ -209,6 +268,7 @@
     </div>
     <select id="who"></select>
   </header>
+  <div class="agent-strip" id="agentStrip"></div>
   <div class="guidance" id="guidance"></div>
 
   <main>
@@ -306,8 +366,9 @@
     function showGuidance(g) {
       const el = $('#guidance');
       if (!g?.message) { el.classList.remove('on'); return; }
-      el.innerHTML = `<b>↗ Reposition</b> · ${g.message}` +
-        (g.targetZone ? ` <button style="margin-left:8px;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)" onclick="goZone('${g.targetZone}')">Go ${g.targetZone}</button>` : '');
+      el.innerHTML = `<span class="guidance-icon">↗</span><div class="guidance-body"><b>Reposition</b> · ${g.message}` +
+        (g.targetZone ? `<br><button type="button" class="guidance-go" onclick="goZone('${g.targetZone}')">Go ${g.targetZone}</button>` : '') +
+        `</div>`;
       el.classList.add('on');
       if (navigator.vibrate) navigator.vibrate(80);
     }
@@ -403,10 +464,42 @@
         b.classList.toggle('sel', b.dataset.mode === (demoMode ? 'demo' : 'real'));
       });
     }
+    function agentRoleLabel(a) {
+      if (a.role) return a.role.split('·')[0].trim();
+      return (a.skills || []).slice(0, 2).join(' · ') || 'staff';
+    }
+    function pickAgent(id) {
+      if (id === me) return;
+      me = id;
+      localStorage.setItem('me', me);
+      socket.emit('hello', { agentId: me });
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
+      $('#guidance').classList.remove('on');
+      if (lastState) rebuildPicker(lastState);
+    }
     function rebuildPicker(st) {
       const who = $('#who');
+      const strip = $('#agentStrip');
       const opts = rosterAgents(st);
-      who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}</option>`).join('');
+      if (demoMode) {
+        who.style.display = 'none';
+        strip.classList.add('on');
+        strip.innerHTML = opts.map((a) => {
+          const role = agentRoleLabel(a);
+          return `<button type="button" class="agent-card${a.id === me ? ' sel' : ''}" data-id="${a.id}">
+            <span class="agent-id">${a.id}</span>
+            <span class="agent-name">${a.name}</span>
+            <span class="agent-role">${role}</span>
+            <span class="agent-zone">${a.current_zone || '?'}</span>
+          </button>`;
+        }).join('');
+        strip.querySelectorAll('.agent-card').forEach((b) => { b.onclick = () => pickAgent(b.dataset.id); });
+      } else {
+        strip.classList.remove('on');
+        strip.innerHTML = '';
+        who.style.display = '';
+        who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}</option>`).join('');
+      }
       if (!opts.some((a) => a.id === me)) {
         me = demoMode ? 'W1' : (localStorage.getItem('me') || 'A7');
         if (!opts.some((a) => a.id === me)) me = opts[0]?.id || me;
@@ -514,7 +607,7 @@
       feed(`📡 BLE sensor · ${p.zoneId}: ${p.deviceCount} devices${p.ratio ? ` (×${p.ratio} vs baseline)` : ''}`, hot ? 'warn' : '');
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">No dispatches yet.</p>'; $('#guidance').classList.remove('on'); };
+    $('#who').onchange = (e) => pickAgent(e.target.value);
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
