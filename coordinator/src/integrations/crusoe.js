@@ -6,7 +6,12 @@ import { SYSTEM_PROMPT, buildUserMessage, buildRepairMessage } from '../prompt.j
 import { deterministicDecide } from '../engine.js';
 
 const DECIDE_TIMEOUT_MS = 12000;
-const MAX_OUTPUT_TOKENS = 1024;
+// Budget de sortie. 1024 suffit aux modèles directs (DeepSeek/Gemma ~500 tokens), mais
+// ÉTRANGLE les modèles de RAISONNEMENT (Nemotron pense ~1800-2200 tokens AVANT le JSON ->
+// finish=length, content vide). 4096 les débloque, AVEC de la marge pour le prompt de
+// REPAIR (plus long) — sans quoi une 1re réponse invalide part en réponse vide puis
+// fallback lent (~25 s). Max = plafond, pas cible : DeepSeek s'arrête bien avant. Surchargeable.
+const MAX_OUTPUT_TOKENS = Number(process.env.CRUSOE_MAX_TOKENS || 4096);
 const RETRYABLE_STATUS = new Set([412, 429, 503]);
 
 let client = null;
