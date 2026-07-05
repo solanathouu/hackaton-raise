@@ -7,6 +7,7 @@ coordinator/certs/*.key
 .DS_Store
 dist/
 tts-cache/
+coordinator/logs/
 
 # playwright / captures
 .playwright-mcp/
