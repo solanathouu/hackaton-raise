@@ -21,8 +21,8 @@ export const ALLOWED_CRUSOE_MODELS = [
   'nvidia/NVIDIA-Nemotron-3-Ultra-550B',
 ];
 
-const CRUSOE_DEFAULT_MODEL = 'deepseek-ai/Deepseek-V4-Flash';
-const CRUSOE_DEFAULT_FALLBACK = 'google/gemma-4-31b-it';
+const CRUSOE_DEFAULT_MODEL = 'nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B';
+const CRUSOE_DEFAULT_FALLBACK = 'deepseek-ai/Deepseek-V4-Flash';
 
 export function assertCrusoeModel(model, label = 'CRUSOE_MODEL') {
   if (!ALLOWED_CRUSOE_MODELS.includes(model)) {

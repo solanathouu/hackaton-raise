@@ -37,8 +37,8 @@ test('validateCrusoeLiveWorkflow — config valide passe', () => {
     useMocks: false,
     crusoe: {
       apiKey: 'test-key',
-      model: 'deepseek-ai/Deepseek-V4-Flash',
-      modelFallback: 'nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B',
+      model: 'nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B',
+      modelFallback: 'deepseek-ai/Deepseek-V4-Flash',
     },
   });
   assert.equal(ok.ok, true);

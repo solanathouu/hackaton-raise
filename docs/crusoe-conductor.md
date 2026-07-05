@@ -8,8 +8,8 @@ Référence rapide pour le workflow réel. Source complète : skill hackathon `C
 # .env — clé entre SINGLE QUOTES (contient des $)
 CRUSOE_API_KEY='...'
 CRUSOE_BASE_URL=https://api.inference.crusoecloud.com/v1/
-CRUSOE_MODEL=deepseek-ai/Deepseek-V4-Flash
-CRUSOE_MODEL_FALLBACK=nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B
+CRUSOE_MODEL=nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B
+CRUSOE_MODEL_FALLBACK=deepseek-ai/Deepseek-V4-Flash
 USE_MOCKS=false
 ```
 
@@ -17,8 +17,8 @@ USE_MOCKS=false
 
 | Modèle | Rôle CONDUCTOR |
 |--------|----------------|
-| `deepseek-ai/Deepseek-V4-Flash` | **Primary** — JSON dispatch, FR/ES, ~3–5s |
-| `nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B` | Fallback LLM (EN only côté Nemotron — préférer DeepSeek primary) |
+| `nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B` | **Primary** — NVIDIA Nemotron sur Crusoe, JSON dispatch, ~6s |
+| `deepseek-ai/Deepseek-V4-Flash` | Fallback — JSON fiable, FR/ES, ~3–5s |
 | `google/gemma-4-31b-it` | Alternative structured output sans disable thinking |
 | `moonshotai/Kimi-K2.6` | Long contexte (256K) — nécessite `thinking: false` pour JSON |
 | `nvidia/NVIDIA-Nemotron-3-Ultra-550B` | Qualité max, plus lent — backup démo si Flash down |

@@ -7,11 +7,11 @@ import { buildSnapshot } from '../src/engine.js';
 import { SYSTEM_PROMPT, buildUserMessage } from '../src/prompt.js';
 
 const MODELS = [
-  'deepseek-ai/Deepseek-V4-Flash',
-  'moonshotai/Kimi-K2.6',
-  'google/gemma-4-31b-it',
   'nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B',
+  'deepseek-ai/Deepseek-V4-Flash',
+  'google/gemma-4-31b-it',
   'nvidia/NVIDIA-Nemotron-3-Ultra-550B',
+  'moonshotai/Kimi-K2.6',
 ];
 
 if (!config.crusoe.apiKey) { console.error('❌ CRUSOE_API_KEY manquante dans .env'); process.exit(2); }
