@@ -24,8 +24,13 @@ import { logPosition } from './position-log.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-let state = buildState(loadSeed());
+let demoMode = false;
+let state = buildState(loadSeed('real'));
 const store = createStore(config.persist ? config.sqlitePath : null);
+
+function publicState() {
+  return { ...serializeState(state), demoMode };
+}
 
 // Contexte runtime des incidents (timers d'accusé + re-route + replay reconnexion).
 const ackTimers = new Map();       // assignmentId -> timeout
@@ -55,6 +60,7 @@ app.get('/health', (_req, res) => {
     mockCrusoe: config.mockCrusoe,
     mockGradium: config.mockGradium,
     persist: store.enabled,
+    demoMode,
     crusoe: {
       liveReady: crusoeLive.ok,
       model: config.crusoe.model,
@@ -64,7 +70,7 @@ app.get('/health', (_req, res) => {
     },
   });
 });
-app.get('/api/state', (_req, res) => res.json(serializeState(state)));
+app.get('/api/state', (_req, res) => res.json(publicState()));
 app.get('/api/incidents', (req, res) => res.json({ incidents: store.listIncidents(Number(req.query.limit) || 50) }));
 app.get('/api/position-logs', (_req, res) => {
   const limit = Math.min(Number(_req.query.limit) || 50, 200);
@@ -86,7 +92,7 @@ app.post('/api/demo/sim_incident', async (req, res) => {
     res.json({ ok: true, incident: r.incident, dispatches: r.dispatches });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
-app.post('/api/demo/reset', (_req, res) => { doReset(); res.json({ ok: true, state: serializeState(state) }); });
+app.post('/api/demo/reset', (req, res) => { doReset(req.body || {}); res.json({ ok: true, state: publicState() }); });
 app.post('/api/assignments/:id/ack', (req, res) => res.json({ ok: ackAssignment(req.params.id) }));
 app.post('/api/operator/override', (req, res) => { applyOverride(req.body || {}); res.json({ ok: true }); });
 
@@ -105,7 +111,7 @@ function createHttpServer(expressApp) {
   return http.createServer(expressApp);
 }
 
-const broadcastState = () => io.emit('state', serializeState(state));
+const broadcastState = () => io.emit('state', publicState());
 
 function emitGuidance(hint) {
   if (!hint) return;
@@ -290,17 +296,18 @@ async function dispatchAgentToZone({ agentId, zoneId, reason, textOverride }) {
   return true;
 }
 
-function doReset() {
+function doReset(payload = {}) {
+  if (payload.demo !== undefined) demoMode = !!payload.demo;
   for (const t of ackTimers.values()) clearTimeout(t);
   ackTimers.clear();
   incidentCtx.clear();
   pendingByAgent.clear();
   densityWarnedAt.clear();
   crowdDensity.clear();
-  state = buildState(loadSeed());
-  store.logEvent('reset', {});
+  state = buildState(loadSeed(demoMode ? 'demo' : 'real'));
+  store.logEvent('reset', { demoMode });
   broadcastState();
-  console.log('[reset] état rechargé depuis le seed');
+  console.log(`[reset] seed reloaded (${demoMode ? 'demo team roster' : 'production roster'})`);
 }
 
 // Scénarios de démo pour l'API REST (miroir des boutons de la PWA).
@@ -317,7 +324,7 @@ function scenarioPayload(name = 'S2') {
 
 // --- WS (Contrat A) --------------------------------------------------------
 io.on('connection', (socket) => {
-  socket.emit('state', serializeState(state));
+  socket.emit('state', publicState());
 
   socket.on('hello', ({ agentId }) => {
     if (!agentId) return;
@@ -419,7 +426,7 @@ io.on('connection', (socket) => {
     } catch (e) { console.error('[operator_action]', e); }
   });
 
-  socket.on('reset', () => doReset());
+  socket.on('reset', (payload) => doReset(payload || {}));
 
   socket.on('disconnect', () => { /* on garde l'agent dans l'état + ses dispatchs en attente (replay au retour) */ });
 });

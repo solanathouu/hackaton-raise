@@ -113,13 +113,18 @@ export function anchorZones(zones, parkLat, parkLon) {
   }));
 }
 
-export function loadSeed() {
+export function loadDemoRoster() {
+  return JSON.parse(readFileSync(resolve(DATA_DIR, 'roster-demo.json'), 'utf8'));
+}
+
+/** @param {'real'|'demo'} mode */
+export function loadSeed(mode = 'real') {
   const zones = anchorZones(
     JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8')),
     config.gps.parkLat,
     config.gps.parkLon,
   );
-  const roster = JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
+  const roster = mode === 'demo' ? loadDemoRoster() : JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
   return { zones, roster };
 }
 

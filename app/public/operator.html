@@ -38,7 +38,11 @@
     .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
+    .badge.demo { background:#1a1533; color:#c4b5fd; border-color:#5b21b6; }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; }
+    .roster-toggle button { font:700 10px/1 -apple-system, system-ui, sans-serif; padding:7px 10px; border:none; background:var(--panel2); color:var(--dim); letter-spacing:.4px; }
+    .roster-toggle button.sel { background:#1a1533; color:#c4b5fd; }
     @keyframes pulse { 50% { opacity:.45; } }
 
     main { max-width:1280px; margin:0 auto; padding:14px 18px 24px; }
@@ -110,7 +114,12 @@
   <header>
     <span class="dot" id="dot"></span>
     <h1>CONDUCTOR <span>· CONSOLE</span></h1>
+    <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
     <span id="mode" class="badge" style="display:none"></span>
+    <div class="roster-toggle" id="rosterToggle">
+      <button type="button" data-mode="real" class="sel">Real</button>
+      <button type="button" data-mode="demo">Demo</button>
+    </div>
     <span style="flex:1"></span>
     <span id="clock"></span>
   </header>
@@ -158,10 +167,39 @@
   <script>
     const socket = io();
     const $ = (s) => document.querySelector(s);
+    let demoMode = localStorage.getItem('demoMode') === 'true';
+    let rosterSynced = false;
     let agents = [];               // dernier roster (pour les pickers)
     let alertSeq = 0;
     const density = new Map();     // zoneId -> payload BLE
     const acked = new Set();       // assignmentIds acquittés
+
+    function updateDemoUI() {
+      $('#demoBadge').style.display = demoMode ? '' : 'none';
+      document.querySelectorAll('#rosterToggle button').forEach((b) => {
+        b.classList.toggle('sel', b.dataset.mode === (demoMode ? 'demo' : 'real'));
+      });
+    }
+    function setDemoMode(on) {
+      demoMode = !!on;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
+      socket.emit('reset', { demo: demoMode });
+      clearTimeout(analyseTimer);
+      $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>';
+      $('#alerts').innerHTML = '<p class="empty">No alerts. All zones covered.</p>';
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>';
+      $('#oplog').innerHTML = '';
+      mode.style.display = 'none';
+    }
+    document.querySelectorAll('#rosterToggle button').forEach((b) => {
+      b.onclick = () => {
+        const next = b.dataset.mode === 'demo';
+        if (next === demoMode) return;
+        setDemoMode(next);
+      };
+    });
+    updateDemoUI();
 
     socket.on('connect', () => $('#dot').classList.add('on'));
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
@@ -175,6 +213,15 @@
 
     // --- état / zones ---
     socket.on('state', (st) => {
+      if (!rosterSynced && st.demoMode !== demoMode) {
+        rosterSynced = true;
+        socket.emit('reset', { demo: demoMode });
+        return;
+      }
+      rosterSynced = true;
+      demoMode = !!st.demoMode;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
       agents = st.agents;
       $('#zones').innerHTML = st.zones.map((z) => {
         const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
@@ -238,7 +285,7 @@
         <div class="row" style="margin-top:8px">
           <span style="font-size:12px;color:var(--dim)">override →</span>
           ${agentSelect(false)}
-          <input placeholder="reason (e.g. protect Marco)" style="width:150px" />
+          <input placeholder="reason (e.g. protect lead)" style="width:150px" />
           <button class="reassign" onclick="overridePrimary(this,'${i.id}')">Reassign</button>
         </div>`;
       box.prepend(el);
@@ -265,7 +312,7 @@
 
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach((b) => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); });
-    $('#reset').onclick = () => { socket.emit('reset'); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>'; $('#alerts').innerHTML = '<p class="empty">No alerts. All zones covered.</p>'; $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
+    $('#reset').onclick = () => { socket.emit('reset', { demo: demoMode }); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>'; $('#alerts').innerHTML = '<p class="empty">No alerts. All zones covered.</p>'; $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
   </script>
 </body>
 </html>

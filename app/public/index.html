@@ -50,7 +50,11 @@
     .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
+    .badge.demo { background:#1a1533; color:#c4b5fd; border-color:#5b21b6; }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; }
+    .roster-toggle button { font:700 10px/1 -apple-system, system-ui, sans-serif; padding:7px 8px; border:none; background:var(--panel2); color:var(--dim); letter-spacing:.4px; }
+    .roster-toggle button.sel { background:#1a1533; color:#c4b5fd; }
     @keyframes pulse { 50% { opacity:.45; } }
 
     /* ---- vues ---- */
@@ -196,8 +200,13 @@
   <header>
     <span class="dot" id="dot"></span>
     <h1>CONDUCTOR</h1>
+    <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
     <span id="mode" class="badge" style="display:none"></span>
     <span style="flex:1"></span>
+    <div class="roster-toggle" id="rosterToggle">
+      <button type="button" data-mode="real" class="sel">Real</button>
+      <button type="button" data-mode="demo">Demo</button>
+    </div>
     <select id="who"></select>
   </header>
   <div class="guidance" id="guidance"></div>
@@ -261,7 +270,7 @@
           <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
           <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · reserve ES</button>
           <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en">S5 · cardiac EN</button>
-          <button id="f8">F8 · protect Marco</button>
+          <button id="f8">F8 · protect lead</button>
           <button id="scanRepo">Scan reposition</button>
           <button id="reset">Reset</button>
         </div>
@@ -286,7 +295,9 @@
     // persisté ensuite — plus besoin de toucher le menu à chaque ouverture.
     const qsAgent = new URLSearchParams(location.search).get('agent');
     if (qsAgent) localStorage.setItem('me', qsAgent.toUpperCase());
-    let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || 'A7';
+    let demoMode = localStorage.getItem('demoMode') === 'true';
+    let rosterSynced = false;
+    let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || (demoMode ? 'W1' : 'A7');
     let lang = 'fr';
     let lastState = null;
     const crowdByZone = {};
@@ -382,17 +393,63 @@
     }
     window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrived: ${target}`); switchView('radio'); };
 
+    function rosterAgents(st) {
+      const list = st?.agents || [];
+      return demoMode ? list.filter((a) => !a.is_reserve) : list;
+    }
+    function updateDemoUI() {
+      $('#demoBadge').style.display = demoMode ? '' : 'none';
+      document.querySelectorAll('#rosterToggle button').forEach((b) => {
+        b.classList.toggle('sel', b.dataset.mode === (demoMode ? 'demo' : 'real'));
+      });
+    }
+    function rebuildPicker(st) {
+      const who = $('#who');
+      const opts = rosterAgents(st);
+      who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}</option>`).join('');
+      if (!opts.some((a) => a.id === me)) {
+        me = demoMode ? 'W1' : (localStorage.getItem('me') || 'A7');
+        if (!opts.some((a) => a.id === me)) me = opts[0]?.id || me;
+        localStorage.setItem('me', me);
+        socket.emit('hello', { agentId: me });
+      }
+      who.value = me;
+    }
+    function setDemoMode(on) {
+      demoMode = !!on;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
+      socket.emit('reset', { demo: demoMode });
+      $('#feed').innerHTML = '';
+      $('#mode').style.display = 'none';
+      $('#guidance').classList.remove('on');
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
+    }
+    document.querySelectorAll('#rosterToggle button').forEach((b) => {
+      b.onclick = () => {
+        const next = b.dataset.mode === 'demo';
+        if (next === demoMode) return;
+        setDemoMode(next);
+      };
+    });
+    updateDemoUI();
+
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
 
     // --- state / zones ---
     socket.on('state', (st) => {
-      lastState = st;
-      const who = $('#who');
-      if (who.options.length !== st.agents.length) {
-        who.innerHTML = st.agents.map(a => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve?' (R)':''}</option>`).join('');
-        who.value = me;
+      if (!rosterSynced && st.demoMode !== demoMode) {
+        rosterSynced = true;
+        socket.emit('reset', { demo: demoMode });
+        return;
       }
+      rosterSynced = true;
+      demoMode = !!st.demoMode;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      lastState = st;
+      updateDemoUI();
+      rebuildPicker(st);
       renderZones(st);
       renderMap(st);
       updatePosStatus(st);
@@ -542,11 +599,13 @@
     document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); switchView('radio'); });
     $('#f8').onclick = () => {
       if (!lastIncidentId) return alert('Trigger an incident first (e.g. S2).');
-      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protect Marco' });
-      feed('✋ override: "protect Marco" → constraint learned. Re-run S2: the engine will no longer pull Marco.', 'cstr');
+      const protectId = demoMode ? 'W4' : 'A1';
+      const protectName = demoMode ? 'Prakash' : 'Marco';
+      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: protectId, reason: `protect ${protectName}` });
+      feed(`✋ override: "protect ${protectName}" → constraint learned. Re-run S2: the engine will no longer pull ${protectName}.`, 'cstr');
     };
     $('#scanRepo').onclick = () => { socket.emit('scan_reposition'); feed('↗ Reposition scan requested', 'guide'); };
-    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on'); };
+    $('#reset').onclick = () => { socket.emit('reset', { demo: demoMode }); $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on'); };
   </script>
 </body>
 </html>
