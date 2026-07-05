@@ -116,7 +116,7 @@
     .feed { max-height:180px; overflow:auto; }
     .feed div { font:12px var(--mono); color:var(--dim); padding:4px 0; }
     .feed:empty::after { content:'No actions yet.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
-    .empty { color:var(--dim); font-size:13px; }
+    .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 12px; border:1px dashed var(--line); border-radius:var(--r); }
   </style>
 </head>
 <body>
@@ -157,10 +157,11 @@
         <div class="card demo">
           <h2>Demo</h2>
           <div class="row">
-            <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1</button>
-            <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2</button>
-            <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3</button>
-            <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4</button>
+            <button data-tr="malaise au grand huit, une personne au sol" data-l="fr" title="Medical issue Z2 (FR)">S1 · Z2</button>
+            <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr" title="Cardiac arrest Z8 (FR)">S2 · Z8</button>
+            <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr" title="Medical issue Z6 (FR)">S3 · Z6</button>
+            <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es" title="Cardiac arrest Z1 (ES)">S4 · ES</button>
+            <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en" title="Cardiac arrest Z1 (EN)">S5 · EN</button>
             <button id="reset">Reset</button>
           </div>
         </div>
@@ -176,6 +177,8 @@
   <script>
     const socket = io();
     const $ = (s) => document.querySelector(s);
+    // Échappe tout texte externe (transcript STT, justification LLM) avant innerHTML.
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
     let demoMode = localStorage.getItem('demoMode') === 'true';
     let rosterSynced = false;
     let agents = [];               // dernier roster (pour les pickers)
@@ -263,7 +266,7 @@
       const box = $('#alerts'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div');
       el.className = 'alert'; el.id = id;
-      el.innerHTML = `<div class="m">${w.message}</div>
+      el.innerHTML = `<div class="m">${esc(w.message)}</div>
         <div class="row">
           <button class="accept" onclick="acceptAlert('${id}','${w.zoneId}')">Accept</button>
           <button class="reassign" onclick="toggleReassign('${id}')">Reassign</button>
@@ -288,9 +291,9 @@
       const box = $('#incidents'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div'); el.className = 'inc';
       const sev = i.severity >= 5 ? `<span class="sev5">severity ${i.severity}</span>` : `severity ${i.severity ?? '?'}`;
-      el.innerHTML = `<div class="h">${i.type || 'incident'} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
-        ${i.justification ? `<div class="j">${i.justification}</div>` : ''}
-        <div class="meta">${i.transcript ? '« ' + i.transcript + ' »' : ''}</div>
+      el.innerHTML = `<div class="h">${esc(i.type || 'incident')} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
+        ${i.justification ? `<div class="j">${esc(i.justification)}</div>` : ''}
+        <div class="meta">${i.transcript ? '« ' + esc(i.transcript) + ' »' : ''}</div>
         <div class="row" style="margin-top:8px">
           <span style="font-size:12px;color:var(--dim)">override →</span>
           ${agentSelect(false)}
@@ -309,7 +312,7 @@
       const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div'); el.className = 'disp ' + d.role; el.id = 'ds_' + d.assignmentId;
       if (acked.has(d.assignmentId)) el.classList.add('acked');
-      el.innerHTML = `<span class="tag ${d.role}">${d.role}</span> <b>${d.agentId} → ${d.targetZone}</b> <span style="color:var(--dim)">${d.text || ''}</span>`;
+      el.innerHTML = `<span class="tag ${d.role}">${d.role}</span> <b>${d.agentId} → ${d.targetZone}</b> <span style="color:var(--dim)">${esc(d.text || '')}</span>`;
       box.prepend(el);
     });
     socket.on('ack_log', (a) => { acked.add(a.assignmentId); $('#ds_' + a.assignmentId)?.classList.add('acked'); oplog(`ack ${a.agentId}`); });
