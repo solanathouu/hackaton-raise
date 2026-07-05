@@ -22,10 +22,12 @@ const label = (type, lang) => LABELS[type]?.[lang] || LABELS.incident[lang] || t
 
 const TEMPLATES = {
   fr: {
-    primary: (t, z) => `${t} au ${z}, tu es le plus proche. Vas-y.`,
+    // style radio « type de message : lieu. consigne. » — évite les prépositions bancales
+    // (« au Zone Enfants ») quel que soit le genre du nom de zone.
+    primary: (t, z) => `${t} : ${z}. Tu es le plus proche. Vas-y.`,
     backfill: (z) => `Rejoins ${z} pour maintenir la couverture.`,
     witness: (t, z, primaryName) =>
-      `${t} au ${z} : ${primaryName} intervient. Ce n'est pas toi, reste en place.`,
+      `${t} · ${z} : ${primaryName} intervient. Ce n'est pas toi, reste en place.`,
   },
   en: {
     primary: (t, z) => `${t} at ${z}, you are the closest. Go now.`,

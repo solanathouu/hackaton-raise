@@ -16,6 +16,10 @@ const engine = createEngine();
 
 const container = document.getElementById("scene");
 const ctx = createSceneContext(container);
+// Filet projecteur : ?bright=1 relève les noirs si le beamer de la salle les mange.
+if (new URLSearchParams(location.search).get("bright")) {
+  ctx.renderer.domElement.style.filter = "brightness(1.18) contrast(1.03)";
+}
 const park = buildPark(ctx.scene);
 const effects = createEffects(ctx.scene);
 const hud = createHud(document.getElementById("hud"), { mode });

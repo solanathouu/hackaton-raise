@@ -20,6 +20,10 @@
       --ok:#2ea862; --warn:#e8b13f; --bad:#ff5449;
       --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
       --r:10px;
+      /* profondeur « hardware » : hairline interne + ombre ambiante diffuse + bezier physique */
+      --hairline: inset 0 1px 0 rgba(255,255,255,.06);
+      --elev: 0 10px 30px rgba(0,0,0,.35);
+      --ease: cubic-bezier(.32,.72,0,1);
     }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html, body { height:100%; }
@@ -29,7 +33,9 @@
     header {
       display:flex; align-items:center; gap:10px; padding:12px 16px;
       padding-top:calc(12px + env(safe-area-inset-top));
-      background:var(--panel); border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, #131922, var(--panel));
+      border-bottom:1px solid var(--line);
+      box-shadow:var(--hairline), 0 4px 16px rgba(0,0,0,.25);
       position:sticky; top:0; z-index:5;
     }
     header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
@@ -54,16 +60,23 @@
 
     /* ---- vue RADIO : le talkie ---- */
     .ptt-stage { display:flex; flex-direction:column; align-items:center; padding:28px 0 20px; }
+    /* double-bezel : coque externe (plateau) + bouton interne (verre) = bouton usiné */
+    .ptt-shell {
+      border-radius:50%; padding:11px;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 60%);
+      box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5);
+      border:1px solid rgba(255,255,255,.05);
+    }
     .ptt {
-      width:min(62vw, 250px); height:min(62vw, 250px); border-radius:50%;
-      background:radial-gradient(circle at 50% 38%, #182029, var(--panel) 70%);
-      border:2px solid var(--line); color:var(--txt);
+      width:min(60vw, 240px); height:min(60vw, 240px); border-radius:50%;
+      background:radial-gradient(circle at 50% 34%, #1a222c, var(--panel) 72%);
+      border:1px solid #2b3442; color:var(--txt);
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
       user-select:none; touch-action:none; cursor:pointer;
-      box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
-      transition:transform .12s, border-color .2s;
+      box-shadow:inset 0 1px 1px rgba(255,255,255,.09), inset 0 -14px 26px rgba(0,0,0,.35);
+      transition:transform .18s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
     }
-    .ptt:active { transform:scale(.965); }
+    .ptt:active { transform:scale(.96); }
     .ptt .k { font-size:24px; font-weight:800; letter-spacing:4px; }
     .ptt .s { font-size:11px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
     .ptt.rec {
@@ -81,10 +94,16 @@
 
     /* ---- dispatchs (l'événement central) ---- */
     .dispatch {
-      background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+      background:linear-gradient(180deg, #131922, var(--panel) 55%);
+      border:1px solid var(--line); border-left:3px solid var(--accent);
       border-radius:var(--r); padding:16px; margin-bottom:10px;
+      box-shadow:var(--hairline), var(--elev);
     }
     .dispatch.done { opacity:.45; border-left-color:var(--ok); }
+    /* liseré cohérent avec le tag de rôle */
+    .dispatch.primary { border-left-color:var(--bad); }
+    .dispatch.backfill { border-left-color:var(--accent); }
+    .dispatch.witness { border-left-color:var(--line); }
     .dispatch .meta { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
     .dispatch .tag { font:700 10px/1 var(--mono); letter-spacing:1px; text-transform:uppercase; padding:4px 7px; border-radius:6px; }
     .dispatch .tag.primary { background:#33130f; color:var(--bad); }
@@ -94,15 +113,23 @@
     .dispatch .t { font-size:17px; font-weight:600; line-height:1.4; margin-bottom:14px; }
     .dispatch .row { display:flex; gap:8px; }
     .ackbtn {
-      flex:1; background:var(--ok); border:none; color:#fff; font:700 15px/1 -apple-system, system-ui, sans-serif;
+      /* vert assombri : blanc/vert passe WCAG AA (bouton critique, lisible au soleil) */
+      flex:1; background:linear-gradient(180deg, #27995a, #1e7a47); border:none; color:#fff;
+      font:700 15px/1 -apple-system, system-ui, sans-serif;
       letter-spacing:.5px; padding:15px; border-radius:var(--r);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 6px 18px rgba(0,0,0,.3);
+      transition:transform .15s var(--ease);
     }
-    .ackbtn:active { transform:scale(.98); }
+    .ackbtn:active { transform:scale(.975); }
     .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
     .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 0; }
 
     /* ---- vue CARTE ---- */
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px; }
+    .card {
+      background:linear-gradient(180deg, #12171f, var(--panel) 60%);
+      border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px;
+      box-shadow:var(--hairline), 0 6px 20px rgba(0,0,0,.25);
+    }
     .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--dim); margin:0 0 10px; font-weight:700; }
     .mapwrap { position:relative; width:100%; aspect-ratio:900/650; background:var(--bg); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; touch-action:none; }
     .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
@@ -167,7 +194,9 @@
     <!-- ============ VUE RADIO (défaut, le talkie) ============ -->
     <section class="view on" id="view-radio">
       <div class="ptt-stage">
-        <button class="ptt" id="ptt"><span class="k">PARLER</span><span class="s">maintenir</span></button>
+        <div class="ptt-shell">
+          <button class="ptt" id="ptt"><span class="k">PARLER</span><span class="s">maintenir</span></button>
+        </div>
         <p class="ptt-hint">Décris l'urgence. Le dispatch revient ici, sur le bon téléphone.</p>
       </div>
       <div id="dispatches"><p class="empty">Aucun dispatch pour l'instant.</p></div>
@@ -339,8 +368,14 @@
 
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
     socket.on('dispatch', (d) => {
+      // Un re-route du même incident+rôle remplace l'ancienne consigne : on grise les cartes
+      // obsolètes pour qu'il n'y ait toujours qu'UNE action verte possible.
+      document.querySelectorAll(`#dispatches .dispatch[data-inc="${d.incidentId}"][data-role="${d.role}"]`)
+        .forEach((old) => old.classList.add('done'));
       const el = document.createElement('div');
-      el.className = 'dispatch'; el.id = 'd_' + d.assignmentId;
+      el.className = 'dispatch ' + (d.role || '');
+      el.id = 'd_' + d.assignmentId;
+      el.dataset.inc = d.incidentId; el.dataset.role = d.role;
       el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${d.lang}</span></div>
         <div class="t">${d.text}</div>
         <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">Je m'en occupe</button>
@@ -361,7 +396,8 @@
       if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
       else if (i.source && i.source.startsWith('crusoe')) {
         mode.className = 'badge live';
-        mode.textContent = i.model ? i.model.split('/').pop() : 'Crusoe';
+        // label court : « Deepseek V4 » (le nom complet tronquait mi-mot sur mobile)
+        mode.textContent = i.model ? i.model.split('/').pop().split('-').slice(0, 2).join(' ') : 'Crusoe';
         mode.style.display = '';
       }
     }

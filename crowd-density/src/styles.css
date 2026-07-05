@@ -400,3 +400,8 @@ button:disabled {
 .dropzone { background: #171c24; }
 .frame-card { background: #171c24; }
 button#analyzeButton { color: #06121c; }
+
+/* profondeur « hardware » (hairline interne + ombre ambiante) */
+.upload-panel, .result-panel, .evidence, .preview-wrap {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 26px rgba(0,0,0,.3);
+}

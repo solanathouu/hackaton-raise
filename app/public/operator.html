@@ -16,13 +16,17 @@
       --ok:#2ea862; --warn:#e8b13f; --bad:#ff5449;
       --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
       --r:10px;
+      --hairline: inset 0 1px 0 rgba(255,255,255,.06);
+      --ease: cubic-bezier(.32,.72,0,1);
     }
     * { box-sizing:border-box; }
     body { margin:0; font:14px/1.45 -apple-system, system-ui, "Segoe UI", sans-serif; background:var(--bg); color:var(--txt); }
 
     header {
       display:flex; align-items:center; gap:12px; padding:12px 18px;
-      background:var(--panel); border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, #131922, var(--panel));
+      border-bottom:1px solid var(--line);
+      box-shadow:var(--hairline), 0 4px 16px rgba(0,0,0,.25);
       position:sticky; top:0; z-index:5;
     }
     header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
@@ -40,8 +44,13 @@
     main { max-width:1280px; margin:0 auto; padding:14px 18px 24px; }
 
     /* ---- bandeau couverture pleine largeur (vision instantanée) ---- */
-    .zones { display:grid; grid-template-columns:repeat(auto-fit, minmax(112px, 1fr)); gap:8px; margin-bottom:14px; }
-    .zone { border:1px solid var(--line); border-radius:var(--r); padding:8px 10px; background:var(--panel); }
+    .zones { display:grid; grid-template-columns:repeat(auto-fit, minmax(132px, 1fr)); gap:8px; margin-bottom:14px; }
+    .zone {
+      border:1px solid var(--line); border-radius:var(--r); padding:8px 10px;
+      background:linear-gradient(180deg, #131922, var(--panel) 65%);
+      box-shadow:var(--hairline), 0 4px 14px rgba(0,0,0,.22);
+      transition:transform .2s var(--ease);
+    }
     .zone.ok { border-bottom:2px solid var(--ok); } .zone.sur { border-bottom:2px solid var(--accent); } .zone.bad { border-bottom:2px solid var(--bad); animation:pulse 1.2s infinite; }
     .zone .n { font-size:10.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .zone .h { font:700 18px var(--mono); font-variant-numeric:tabular-nums; }
@@ -53,7 +62,11 @@
     .cols { display:grid; grid-template-columns:minmax(0, 1fr) 340px; gap:14px; align-items:start; }
     @media (max-width:860px){ .cols { grid-template-columns:1fr; } }
 
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:14px; }
+    .card {
+      background:linear-gradient(180deg, #12171f, var(--panel) 60%);
+      border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:14px;
+      box-shadow:var(--hairline), 0 6px 22px rgba(0,0,0,.28);
+    }
     .card h2 { font-size:11px; text-transform:uppercase; letter-spacing:1.4px; color:var(--dim); margin:0 0 10px; font-weight:700; }
 
     select, button, input {
@@ -61,8 +74,8 @@
       border:1px solid var(--line); border-radius:var(--r); padding:7px 10px;
     }
     input::placeholder { color:#5d6875; }
-    button { cursor:pointer; } button:active { transform:scale(.98); }
-    .accept { background:var(--ok); border:none; color:#fff; font-weight:700; }
+    button { cursor:pointer; transition:transform .15s var(--ease); } button:active { transform:scale(.98); }
+    .accept { background:linear-gradient(180deg, #27995a, #1e7a47); border:none; color:#fff; font-weight:700; box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
     .reassign { background:#0c2030; border:1px solid #1d4a63; color:var(--accent); font-weight:700; }
     .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 
@@ -89,6 +102,7 @@
     #reset { background:#2a1210; border-color:#5c2320; }
     .feed { max-height:180px; overflow:auto; }
     .feed div { font:12px var(--mono); color:var(--dim); padding:4px 0; }
+    .feed:empty::after { content:'Aucune action pour l\'instant.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
     .empty { color:var(--dim); font-size:13px; }
   </style>
 </head>
@@ -183,7 +197,7 @@
     socket.on('incident', (i) => {
       clearTimeout(analyseTimer);
       if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
-      else if (i.source?.startsWith('crusoe')) { mode.className = 'badge live'; mode.textContent = i.model ? i.model.split('/').pop() : 'Crusoe'; mode.style.display = ''; }
+      else if (i.source?.startsWith('crusoe')) { mode.className = 'badge live'; mode.textContent = i.model ? i.model.split('/').pop().split('-').slice(0, 2).join(' ') : 'Crusoe'; mode.style.display = ''; }
       renderIncident(i);
     });
 
