@@ -1,0 +1,7 @@
+[
+ {"id":"IBRA","name":"Ibra","skills":["RCP","medic"],"languages":["en"],"current_zone":"Z8","home_zone":"Z8","is_reserve":false,"status":"available"},
+ {"id":"NATHAN","name":"Nathan","skills":["RCP","DAE"],"languages":["en"],"current_zone":"Z8","home_zone":"Z8","is_reserve":false,"status":"available"},
+ {"id":"PRAKASH","name":"Prakash","skills":["RCP","DAE","medic"],"languages":["en"],"current_zone":"Z2","home_zone":null,"is_reserve":true,"status":"available"},
+ {"id":"ALI","name":"Ali","skills":["RCP","secu"],"languages":["en"],"current_zone":"Z5","home_zone":"Z5","is_reserve":false,"status":"available"},
+ {"id":"BASTEN","name":"Basten","skills":["secu","first-aid"],"languages":["en"],"current_zone":"Z5","home_zone":"Z5","is_reserve":false,"status":"available"}
+]

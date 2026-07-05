@@ -36,7 +36,7 @@ let voiceOn = false;
 function speak({ text }) {
   if (!voiceOn || !("speechSynthesis" in window) || !text) return;
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = "fr-FR";
+  u.lang = "en-US";
   u.rate = 1.05;
   speechSynthesis.speak(u);
 }
@@ -48,7 +48,7 @@ hud.buildControls({
   onVoice: (on) => { voiceOn = on; if (!on) window.speechSynthesis?.cancel(); },
 });
 if (mode === "demo") {
-  hud.setModel("cerveau local");
+  hud.setModel("local brain");
   hud.setConnection("hidden");
 } else {
   hud.setConnection("off");

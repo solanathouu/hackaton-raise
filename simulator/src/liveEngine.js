@@ -73,11 +73,11 @@ export class LiveCoordinatorEngine extends EventTarget {
     });
     this.socket.on("connect", () => {
       this.emit("connection", { connected: true });
-      this.emit("decision", { kind: "neutral", title: "Coordinateur connecté", body: "Vue live du cerveau active.", tone: "neutral" });
+      this.emit("decision", { kind: "neutral", title: "Coordinator connected", body: "Live view of the brain is active.", tone: "neutral" });
     });
     this.socket.on("disconnect", () => {
       this.emit("connection", { connected: false });
-      this.emit("decision", { kind: "warning", title: "Coordinateur déconnecté", body: "La vue n'est plus alimentée.", tone: "danger" });
+      this.emit("decision", { kind: "warning", title: "Coordinator disconnected", body: "The view is no longer being fed.", tone: "danger" });
     });
   }
 
@@ -150,12 +150,12 @@ export class LiveCoordinatorEngine extends EventTarget {
     if (this.incidents.length > 50) this.incidents.shift(); // borne mémoire (session grand écran)
     this.emit("incident", { incident });
     this.emit("decision", {
-      kind: "parse", title: `Incident : ${zone.name}`,
-      body: `${String(incident.type).replaceAll("_", " ")} · ${incident.skillsNeeded.join(", ") || "—"} · sévérité ${incident.severity}/5`,
+      kind: "parse", title: `Incident: ${zone.name}`,
+      body: `${String(incident.type).replaceAll("_", " ")} · ${incident.skillsNeeded.join(", ") || "—"} · severity ${incident.severity}/5`,
       tone: "hot",
     });
-    if (inc.justification) this.emit("decision", { kind: "parse", title: "Justification", body: inc.justification, tone: "neutral" });
-    if (inc.degraded) this.emit("decision", { kind: "warning", title: "Mode dégradé", body: "Crusoe injoignable — dispatch déterministe local.", tone: "warning" });
+    if (inc.justification) this.emit("decision", { kind: "parse", title: "Rationale", body: inc.justification, tone: "neutral" });
+    if (inc.degraded) this.emit("decision", { kind: "warning", title: "Degraded mode", body: "Crusoe unreachable — local deterministic dispatch.", tone: "warning" });
     // Badges HUD : état du cerveau (modèle utilisé / dégradé) porté par chaque incident.
     this.emit("brain", { degraded: !!inc.degraded, model: inc.model || null, source: inc.source || null });
   }
@@ -181,7 +181,7 @@ export class LiveCoordinatorEngine extends EventTarget {
 
   _onWarning(w) {
     this.emit("decision", {
-      kind: "warning", zoneId: w.zoneId, title: `Alerte couverture : ${this.zone(w.zoneId)?.name || w.zoneId}`,
+      kind: "warning", zoneId: w.zoneId, title: `Coverage alert: ${this.zone(w.zoneId)?.name || w.zoneId}`,
       body: w.message || "", tone: "danger",
     });
     if (w.message) this.emit("speak", { speaker: "Conductor", text: w.message });
@@ -190,7 +190,7 @@ export class LiveCoordinatorEngine extends EventTarget {
   _onAck(a) {
     const agent = this.agentById.get(a.agentId);
     this.emit("ack", { agentId: a.agentId });
-    this.emit("decision", { kind: "ack", title: `${agent?.name || a.agentId} a accusé`, body: "Intervention confirmée.", tone: "success" });
+    this.emit("decision", { kind: "ack", title: `${agent?.name || a.agentId} acknowledged`, body: "Response confirmed.", tone: "success" });
   }
 
   // Dijkstra sur l'adjacence (identique à DispatchEngine.shortestPath).
@@ -238,15 +238,15 @@ export class LiveCoordinatorEngine extends EventTarget {
       agent.status = "available";
       agent.coveringZone = targetZone;
       this.emit("decision", {
-        kind: "restore", title: `${this.zone(targetZone)?.name || targetZone} — couverture rétablie`,
-        body: `${agent.name} couvre la zone. Le trou est comblé.`, tone: "success",
+        kind: "restore", title: `${this.zone(targetZone)?.name || targetZone} — coverage restored`,
+        body: `${agent.name} is covering the zone. The gap is filled.`, tone: "success",
       });
       this.emit("coverage", this.getCoverage());
     } else if (role === "primary") {
       agent.status = "treating";
       const inc = this.incidents.find((i) => i.id === incidentId);
       if (inc) inc.status = "on_scene";
-      this.emit("decision", { kind: "onscene", title: `${agent.name} sur place`, body: "Intervention en cours.", tone: "hot" });
+      this.emit("decision", { kind: "onscene", title: `${agent.name} on scene`, body: "Response in progress.", tone: "hot" });
     }
   }
   completeAmbulance() { /* pas d'ambulance en mode live */ }

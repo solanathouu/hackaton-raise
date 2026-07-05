@@ -57,7 +57,7 @@ async function initBrainLink() {
   brain.els.send = document.querySelector("#sendBrain");
   brain.els.note = document.querySelector("#brainNote");
   if (!globalThis.io) {
-    brain.els.note.textContent = "Hors coordinateur (page standalone) : liaison cerveau désactivée.";
+    brain.els.note.textContent = "Standalone page (no coordinator): brain link disabled.";
     return;
   }
   try {
@@ -65,7 +65,7 @@ async function initBrainLink() {
     brain.els.zone.innerHTML = '<option value="">Zone…</option>' +
       state.zones.map((z) => `<option value="${z.id}">${z.name}</option>`).join("");
   } catch {
-    brain.els.note.textContent = "Coordinateur injoignable : liaison cerveau désactivée.";
+    brain.els.note.textContent = "Coordinator unreachable: brain link disabled.";
     return;
   }
   brain.socket = globalThis.io({ transports: ["websocket"] });
@@ -81,8 +81,8 @@ async function initBrainLink() {
       source: "camera",
     };
     brain.socket.emit("crowd_density", payload);
-    brain.els.note.textContent = `Signal envoyé : ${lastSummary.level} (ratio ${payload.ratio}) sur ${brain.els.zone.selectedOptions[0].textContent}.` +
-      (payload.ratio >= 1.5 ? " Advisory possible si la zone n'a pas de marge." : "");
+    brain.els.note.textContent = `Signal sent: ${lastSummary.level} (ratio ${payload.ratio}) on ${brain.els.zone.selectedOptions[0].textContent}.` +
+      (payload.ratio >= 1.5 ? " Advisory possible if the zone has no margin." : "");
     brain.els.note.classList.add("ok");
     brain.els.send.disabled = true;
     setTimeout(() => { brain.els.note.classList.remove("ok"); brain.refresh?.(); }, 2500);
@@ -127,14 +127,14 @@ async function loadDetector() {
     try {
       detector = await globalThis.cocoSsd.load({ modelUrl: new URL("../vendor/model/model.json", import.meta.url).href });
     } catch (localError) {
-      console.warn("[crowd-density] modèle local indisponible, tentative CDN", localError);
+      console.warn("[crowd-density] local model unavailable, trying CDN", localError);
       detector = await globalThis.cocoSsd.load({ base: "lite_mobilenet_v2" });
     }
     detectorReady = true;
-    setStatus("détecteur prêt", "ready");
+    setStatus("detector ready", "ready");
   } catch (error) {
     detectorReady = false;
-    setStatus("mode heuristique", "warn");
+    setStatus("heuristic mode", "warn");
     console.warn("[crowd-density] detector unavailable", error);
   }
 }

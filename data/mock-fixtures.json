@@ -1,6 +1,7 @@
 {
   "_note": "Fixtures illustratives du kickoff (section 4). Utilisées par les intégrations en USE_MOCKS=true (crusoe/gradium). NB: le moteur (engine.js) NE lit PAS ce fichier — il calcule les vraies valeurs Floyd-Warshall sur zones.json/roster.json. Ex: le trajet Paul Z9->Z8 vaut 205s réel, 130s ici (approximation à la main).",
   "transcribe_fr": { "text": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr" },
+  "transcribe_en": { "text": "cardiac arrest at the extreme ride, he is not breathing", "lang": "en" },
   "transcribe_es": { "text": "un hombre se desplomó en la entrada, no respira", "lang": "es" },
   "snapshot": {
     "incident": { "transcript": "arrêt cardiaque au manège extrême, il ne respire plus", "lang": "fr", "zone_id": "Z8" },

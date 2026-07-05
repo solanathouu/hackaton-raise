@@ -74,7 +74,7 @@ async function gradiumTtsRequest(body) {
 export async function transcribe(audio, { lang, strict = false } = {}) {
   if (config.mockGradium) {
     const fx = loadMockFixtures();
-    return lang === 'es' ? fx.transcribe_es : fx.transcribe_fr; // hint 'es' pour la démo S4
+    return lang === 'es' ? fx.transcribe_es : (lang === 'en' && fx.transcribe_en ? fx.transcribe_en : fx.transcribe_fr); // hint langue démo
   }
   const buf = Buffer.isBuffer(audio) ? audio : Buffer.from(audio, 'base64');
   try {
@@ -89,9 +89,10 @@ export async function transcribe(audio, { lang, strict = false } = {}) {
         console.warn(`[gradium] whisper KO aussi (${werr.message}) -> fixture mock`);
       }
     }
-    // Dernier filet : fixture déterministe, le pipeline continue (jamais d'écran figé).
-    const fx = loadMockFixtures();
-    return lang === 'es' ? fx.transcribe_es : fx.transcribe_fr;
+    // PLUS de fixture fabriquée sur le vrai micro : si la STT réelle échoue, on remonte l'erreur
+    // pour inviter l'appelant à répéter (jamais d'incident inventé). Le mode dégradé F9 reste
+    // couvert par MOCK_GRADIUM (return fixture en tête de fonction).
+    throw new Error('STT vide : aucune transcription');
   }
 }
 

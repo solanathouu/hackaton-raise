@@ -1,0 +1,12 @@
+[
+ {"id":"Z1","name":"Entrance","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":60},{"z":"Z10","t":70}]},
+ {"id":"Z2","name":"Roller Coaster","required_min":0,"required_skills":["RCP"],"adjacency":[{"z":"Z5","t":90},{"z":"Z8","t":60}]},
+ {"id":"Z3","name":"Ferris Wheel","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":75},{"z":"Z4","t":85}]},
+ {"id":"Z4","name":"Wild River","required_min":0,"required_skills":["RCP"],"adjacency":[{"z":"Z3","t":85},{"z":"Z8","t":70}]},
+ {"id":"Z5","name":"Central Plaza","required_min":0,"required_skills":[],"adjacency":[{"z":"Z1","t":60},{"z":"Z2","t":90},{"z":"Z3","t":75},{"z":"Z6","t":80},{"z":"Z7","t":50},{"z":"Z9","t":55}]},
+ {"id":"Z6","name":"Kids Zone","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":80},{"z":"Z7","t":65}]},
+ {"id":"Z7","name":"Food Court","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":50},{"z":"Z6","t":65},{"z":"Z9","t":40}]},
+ {"id":"Z8","name":"Extreme Ride","required_min":2,"required_skills":["RCP"],"adjacency":[{"z":"Z2","t":60},{"z":"Z4","t":70}]},
+ {"id":"Z9","name":"Shops","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":55},{"z":"Z7","t":40}]},
+ {"id":"Z10","name":"Parking","required_min":0,"required_skills":[],"adjacency":[{"z":"Z1","t":70}]}
+]

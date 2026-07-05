@@ -94,8 +94,10 @@ export const config = {
 };
 
 export function loadSeed() {
-  const zones = JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8'));
-  const roster = JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
+  // Fichiers seed surchargeables (ex : démo 5 comptes via ROSTER_FILE/ZONES_FILE) sans toucher
+  // le seed par défaut sur lequel s'appuie engine.selftest.js (47/47).
+  const zones = JSON.parse(readFileSync(resolve(DATA_DIR, process.env.ZONES_FILE || 'zones.json'), 'utf8'));
+  const roster = JSON.parse(readFileSync(resolve(DATA_DIR, process.env.ROSTER_FILE || 'roster.json'), 'utf8'));
   return { zones, roster };
 }
 

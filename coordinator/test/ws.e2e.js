@@ -45,20 +45,22 @@ const resetAndClear = async () => { op.emit('reset'); await sleep(150); clear();
 console.log('\n[S2] Cascade Z8 : dispatch primary + backfill via WS');
 await resetAndClear();
 op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.length >= 2, LLM_WAIT_MS);
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'primary'), LLM_WAIT_MS);
 {
   const inc = buf.incident[0];
   ok(inc?.primary_id === 'A7', `incident.primary_id = A7 (Hugo) [reçu ${inc?.primary_id}]`);
   const prim = buf.dispatch_log.find((d) => d.role === 'primary');
-  const back = buf.dispatch_log.find((d) => d.role === 'backfill');
   ok(prim?.agentId === 'A7' && prim?.targetZone === 'Z8', 'dispatch primary -> A7 @Z8');
-  ok(!!back && back.agentId === 'A1' && back.targetZone === 'Z8', `dispatch backfill -> A1 @Z8 [reçu ${back?.agentId}]`);
   ok(!!prim?.audioUrl, 'dispatch primary a un audioUrl (TTS mock)');
-  // accusé du backfill -> l'agent arrive, la zone se recouvre
-  op.emit('ack', { assignmentId: back.assignmentId });
+  // Backfill POST-ACCUSÉ : rien n'est appelé tant que le primaire n'a pas cliqué « je m'en occupe ».
+  ok(!buf.dispatch_log.some((d) => d.role === 'backfill'), 'aucun backfill émis AVANT l\'accusé du primaire');
   op.emit('ack', { assignmentId: prim.assignmentId });
+  const bfArrived = await waitFor(() => buf.dispatch_log.some((d) => d.role === 'backfill'));
+  const back = buf.dispatch_log.find((d) => d.role === 'backfill');
+  ok(bfArrived && back?.agentId === 'A1' && back.targetZone === 'Z8', `backfill appelé APRÈS l'accusé -> A1 @Z8 [reçu ${back?.agentId}]`);
+  op.emit('ack', { assignmentId: back?.assignmentId });
   const acked = await waitFor(() => buf.ack_log.length >= 2);
-  ok(acked, '2 accusés traités');
+  ok(acked, '2 accusés traités (primaire puis renfort)');
 }
 
 // --- S1 : surplus Z2, zéro backfill, zéro warning ---
@@ -118,8 +120,12 @@ op.emit('operator_override', { incidentId: 'standing', newAgentId: null, reason:
 await sleep(200);
 clear();
 op.emit('sim_incident', { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
-await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'backfill'), LLM_WAIT_MS);
+await waitFor(() => buf.incident.length > 0 && buf.dispatch_log.some((d) => d.role === 'primary'), LLM_WAIT_MS);
 {
+  // Backfill post-accusé : on acquitte le primaire pour libérer le renfort, puis on vérifie la contrainte.
+  const prim = buf.dispatch_log.find((d) => d.role === 'primary');
+  op.emit('ack', { assignmentId: prim.assignmentId });
+  await waitFor(() => buf.dispatch_log.some((d) => d.role === 'backfill'));
   const back = buf.dispatch_log.find((d) => d.role === 'backfill');
   ok(back && back.agentId !== 'A1', `backfill n'est PAS Marco (A1) [reçu ${back?.agentId}]`);
   ok(buf.incident[0]?.constraints_applied?.includes('protège Marco'), 'incident.constraints_applied propagé au client');

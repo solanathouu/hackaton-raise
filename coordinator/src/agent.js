@@ -15,7 +15,11 @@ import { transcribe, speak } from './integrations/gradium.js';
 // Libellés d'incident par langue (pour le TTS traduit du répondant, F7).
 const LABELS = {
   arret_cardiaque: { fr: 'Arrêt cardiaque', en: 'Cardiac arrest', es: 'Paro cardíaco' },
+  cardiac_arrest: { fr: 'Arrêt cardiaque', en: 'Cardiac arrest', es: 'Paro cardíaco' },
   malaise: { fr: 'Malaise', en: 'Medical issue', es: 'Malestar' },
+  medical: { fr: 'Malaise', en: 'Medical issue', es: 'Malestar' },
+  fall: { fr: 'Chute', en: 'Fall', es: 'Caída' },
+  fight: { fr: 'Bagarre', en: 'Fight', es: 'Pelea' },
   incident: { fr: 'Incident', en: 'Incident', es: 'Incidente' },
 };
 const label = (type, lang) => LABELS[type]?.[lang] || LABELS.incident[lang] || type || 'Incident';

@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
+    "demo": "ROSTER_FILE=roster.demo.json ZONES_FILE=zones.demo.json node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test test/engine.selftest.js test/gradium.mock.test.js test/gradium.real.test.js",
     "test:e2e": "node test/ws.e2e.js",

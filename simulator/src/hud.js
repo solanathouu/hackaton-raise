@@ -11,17 +11,17 @@ export function createHud(root, { mode }) {
       <div class="brand-row">
         <span class="pulse-dot"></span>
         <strong>CONDUCTOR</strong>
-        <span class="badge mode">${mode === "demo" ? "DÉMO" : "LIVE"}</span>
-        <span class="badge conn" id="hudConn" style="display:none">CONNEXION…</span>
-        <span class="badge degraded" id="hudDegraded" style="display:none">⚠ MODE DÉGRADÉ</span>
+        <span class="badge mode">${mode === "demo" ? "DEMO" : "LIVE"}</span>
+        <span class="badge conn" id="hudConn" style="display:none">CONNECTING…</span>
+        <span class="badge degraded" id="hudDegraded" style="display:none">⚠ DEGRADED MODE</span>
         <span class="badge model" id="hudModel" style="display:none"></span>
       </div>
-      <span class="brand-sub">${mode === "demo" ? "simulation locale scriptée · cerveau embarqué" : "vue live du cerveau · dispatch temps réel"}</span>
+      <span class="brand-sub">${mode === "demo" ? "scripted local simulation · embedded brain" : "live view of the brain · real-time dispatch"}</span>
     </header>
 
     <nav class="surface-tabs">
       <span class="tab on">3D</span>
-      <a class="tab" href="/crowd/">Caméra</a>
+      <a class="tab" href="/crowd/">Camera</a>
     </nav>
 
     <section class="hud-feed" id="hudFeed" aria-live="polite"></section>
@@ -43,7 +43,7 @@ export function createHud(root, { mode }) {
     // state: "on" | "off" | "hidden"
     if (state === "hidden") { connEl.style.display = "none"; return; }
     connEl.style.display = "";
-    connEl.textContent = state === "on" ? "● CONNECTÉ" : "○ DÉCONNECTÉ";
+    connEl.textContent = state === "on" ? "● CONNECTED" : "○ DISCONNECTED";
     connEl.classList.toggle("ok", state === "on");
     connEl.classList.toggle("ko", state !== "on");
   }
@@ -99,16 +99,16 @@ export function createHud(root, { mode }) {
       return b;
     };
     let voiceOn = false;
-    const voiceBtn = mk("🔇 Voix off", "", () => {
+    const voiceBtn = mk("🔇 Voice off", "", () => {
       voiceOn = !voiceOn;
-      voiceBtn.textContent = voiceOn ? "🔊 Voix on" : "🔇 Voix off";
+      voiceBtn.textContent = voiceOn ? "🔊 Voice on" : "🔇 Voice off";
       onVoice?.(voiceOn);
     });
     if (mode === "demo") {
-      mk("S1 · Grand Huit", "sc", () => onScenario?.("Z2"));
-      mk("S2 · Extrême", "sc hot", () => onScenario?.("Z8"));
-      mk("S3 · Enfants", "sc", () => onScenario?.("Z6"));
-      mk("S4 · Entrée ES", "sc", () => onScenario?.("Z1"));
+      mk("S1 · Roller Coaster", "sc", () => onScenario?.("Z2"));
+      mk("S2 · Extreme", "sc hot", () => onScenario?.("Z8"));
+      mk("S3 · Kids", "sc", () => onScenario?.("Z6"));
+      mk("S4 · Entrance ES", "sc", () => onScenario?.("Z1"));
       mk("Reset", "danger", () => onReset?.());
     }
     return { isVoiceOn: () => voiceOn };

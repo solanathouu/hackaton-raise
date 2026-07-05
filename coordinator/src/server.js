@@ -29,6 +29,7 @@ const store = createStore(config.persist ? config.sqlitePath : null);
 const ackTimers = new Map();       // assignmentId -> timeout
 const incidentCtx = new Map();     // incidentId -> { zoneId, skills, used:Set, rerouteCount:Map }
 const pendingByAgent = new Map();  // agentId -> Map(assignmentId -> dispatch)  (dispatchs non acquittés)
+const pendingBackfills = new Map(); // incidentId -> [dispatch backfill] retenus jusqu'à l'accusé du primaire
 
 // Densité de foule par zone (capteur BLE, scripts/crowd-density.js). Hors state :
 // c'est de la télémétrie ambiante, pas du roster. zoneId -> dernier payload.
@@ -131,20 +132,21 @@ function onAckTimeout(dispatch) {
   const rc = ctx?.rerouteCount || new Map();
   const count = (rc.get(dispatch.role + dispatch.targetZone) || 0) + 1;
   if (!ctx || count > 2) {
-    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `Aucun accusé pour ${dispatch.targetZone} après re-routes. Intervention opérateur requise.` });
+    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No acknowledgement for ${dispatch.targetZone} after re-routes. Operator action required.` });
     return;
   }
   rc.set(dispatch.role + dispatch.targetZone, count);
 
-  setStatus(state, dispatch.agentId, 'available'); // libère l'agent muet
-  ctx.used.delete(dispatch.agentId);
+  setStatus(state, dispatch.agentId, 'available'); // libère l'agent muet (redevient dispo pour d'AUTRES incidents)
+  // On le GARDE dans ctx.used : le re-route doit viser un AUTRE agent, jamais rappeler le même
+  // téléphone (sinon un primaire sur zone, trajet 0, serait re-sélectionné en boucle).
   const excl = [...ctx.used];
   const next =
     dispatch.role === 'primary'
       ? candidatesPrimary(state, ctx.zoneId, ctx.skills).find((c) => !excl.includes(c.id))
       : candidatesBackfill(state, dispatch.targetZone, excl)[0];
   if (!next) {
-    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `Plus de candidat pour ${dispatch.targetZone}.` });
+    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No more candidates for ${dispatch.targetZone}.` });
     return;
   }
   ctx.used.add(next.id);
@@ -177,7 +179,16 @@ async function runIncident({ audio, transcript, langHint }) {
 
   broadcastState();
   io.emit('incident', res.incident); // console opérateur : feed + justification
-  for (const d of res.dispatches) emitDispatch(d);
+  // Backfill « post-accusé » : on émet le primaire + les témoins tout de suite, mais on RETIENT
+  // les renforts jusqu'à ce que le primaire clique « je m'en occupe » (ou qu'un re-routé accuse).
+  for (const d of res.dispatches) if (d.role !== 'backfill') emitDispatch(d);
+  const heldBackfills = res.dispatches.filter((d) => d.role === 'backfill');
+  if (heldBackfills.length) {
+    pendingBackfills.set(incidentId, heldBackfills);
+    // Le renfort reste 'available' (pas encore appelé) — sinon il « bougerait » avant de sonner.
+    for (const d of heldBackfills) setStatus(state, d.agentId, 'available');
+    broadcastState();
+  }
   for (const w of res.warnings) io.emit('coverage_warning', w);
   const nWitness = res.dispatches.filter((d) => d.role === 'witness').length;
   console.log(`[incident ${incidentId}] "${res.incident.transcript}" -> primary ${res.incident.primary_id}` +
@@ -198,9 +209,24 @@ function ackAssignment(assignmentId) {
   store.logEvent('ack', { assignmentId, agentId: as.agent_id });
   if (as.role === 'backfill') { setPosition(state, as.agent_id, as.target_zone); setStatus(state, as.agent_id, 'available'); }
   else setStatus(state, as.agent_id, 'responding');
+  // Un primaire (initial OU re-routé) qui accuse déclenche l'appel du/des renfort(s) retenu(s).
+  if (as.role === 'primary') releasePendingBackfills(as.incident_id);
   broadcastState();
   io.emit('ack_log', { assignmentId, agentId: as.agent_id });
   return true;
+}
+
+// Le primaire a accusé -> on appelle maintenant le(s) renfort(s) pré-calculé(s) et retenu(s).
+// emitDispatch arme leur propre timer d'accusé (le renfort peut lui aussi être re-routé s'il ne répond pas).
+function releasePendingBackfills(incidentId) {
+  const held = pendingBackfills.get(incidentId);
+  if (!held?.length) return;
+  pendingBackfills.delete(incidentId);
+  for (const d of held) {
+    setStatus(state, d.agentId, 'backfilling');
+    emitDispatch(d);
+  }
+  broadcastState();
 }
 
 function applyOverride({ incidentId, newAgentId, reason }) {
@@ -233,7 +259,7 @@ async function dispatchAgentToZone({ agentId, zoneId, reason, textOverride }) {
   broadcastState();
   const zoneName = zoneById(state, zoneId)?.name || zoneId;
   const lang = agent.languages?.[0] || 'fr';
-  const text = textOverride || `Renfort demandé : rejoins ${zoneName} pour maintenir la couverture.`;
+  const text = textOverride || `Backfill requested: move to ${zoneName} to keep coverage.`;
   let audioUrl = null;
   try { audioUrl = (await speak(text, lang, { id: as.id })).audioUrl; } catch (e) { console.warn(`[operator] TTS KO ${e.message}`); }
   emitDispatch({ assignmentId: as.id, incidentId: null, role: 'backfill', targetZone: zoneId, agentId, text, audioUrl, lang });
@@ -245,6 +271,7 @@ function doReset() {
   ackTimers.clear();
   incidentCtx.clear();
   pendingByAgent.clear();
+  pendingBackfills.clear();
   densityWarnedAt.clear();
   crowdDensity.clear();
   state = buildState(loadSeed());
@@ -256,10 +283,10 @@ function doReset() {
 // Scénarios de démo pour l'API REST (miroir des boutons de la PWA).
 function scenarioPayload(name = 'S2') {
   const S = {
-    S1: { transcript: 'malaise au grand huit, une personne au sol', lang: 'fr' },
-    S2: { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' },
-    S3: { transcript: 'malaise à la zone enfants, personne inconsciente', lang: 'fr' },
-    S4: { transcript: 'un hombre se desplomó en la entrada, no respira', lang: 'es' },
+    S1: { transcript: 'someone feeling faint at the roller coaster, a person on the ground', lang: 'en' },
+    S2: { transcript: 'cardiac arrest at the extreme ride, he is not breathing', lang: 'en' },
+    S3: { transcript: 'medical emergency at the kids zone, person unconscious', lang: 'en' },
+    S4: { transcript: 'a man collapsed at the entrance, he is not breathing', lang: 'en' },
   };
   return S[String(name || 'S2').toUpperCase()] || S.S2;
 }
@@ -307,7 +334,7 @@ io.on('connection', (socket) => {
       io.emit('coverage_warning', {
         zoneId: z.id,
         etaSec: 0,
-        message: `Densité inhabituelle ${z.name} (x${payload.ratio} vs normale, ${payload.deviceCount} appareils) sans marge de couverture. Pré-positionner un renfort ?`,
+        message: `Unusual density at ${z.name} (x${payload.ratio} vs normal, ${payload.deviceCount} devices) with no coverage margin. Pre-position a backfill?`,
       });
       console.log(`[density] alerte ${z.id} ratio=${payload.ratio} count=${payload.deviceCount}`);
     }
@@ -316,7 +343,11 @@ io.on('connection', (socket) => {
   socket.on('incident_audio', async ({ agentId, audio, ts, lang }) => {
     console.log(`[incident_audio] de ${agentId} : ${audio ? Math.round(audio.length / 1024) : 0} Ko (b64), lang=${lang}`);
     try { await runIncident({ audio, langHint: lang }); }
-    catch (e) { console.error('[incident_audio] erreur', e); socket.emit('error_msg', { message: 'Traitement incident échoué', detail: String(e.message) }); }
+    catch (e) {
+      console.error('[incident_audio] erreur', e);
+      const empty = /STT vide|transcription vide/i.test(String(e.message));
+      socket.emit('error_msg', { message: empty ? "Didn't catch that — hold the button and speak clearly for ~2 seconds." : 'Incident processing failed', detail: String(e.message) });
+    }
   });
 
   socket.on('sim_incident', async ({ transcript, lang }) => {

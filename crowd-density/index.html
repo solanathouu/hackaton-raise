@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CONDUCTOR · Densité caméra</title>
+    <title>CONDUCTOR · Camera density</title>
     <link rel="stylesheet" href="./src/styles.css" />
     <!-- Vendored (offline-first : la démo tourne sans internet, poids du modèle inclus) -->
     <script src="./vendor/tf.min.js"></script>
@@ -16,13 +16,13 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">CONDUCTOR · signal vision</p>
-          <h1>Densité caméra</h1>
+          <h1>Camera density</h1>
         </div>
         <nav class="surface-tabs">
           <a class="tab" href="/sim">3D</a>
-          <span class="tab on">Caméra</span>
+          <span class="tab on">Camera</span>
         </nav>
-        <span id="modelStatus" class="status">chargement du modèle</span>
+        <span id="modelStatus" class="status">loading model</span>
       </header>
 
       <section class="workspace">
@@ -80,8 +80,8 @@
                chauffe sur la carte staff + la vue 3D. -->
           <div class="brain-panel">
             <select id="zoneSelect"><option value="">Zone…</option></select>
-            <button class="send" id="sendBrain" type="button" disabled>Envoyer au cerveau</button>
-            <span class="brain-note" id="brainNote">Analyse d'abord une vidéo, choisis la zone filmée, puis envoie le signal.</span>
+            <button class="send" id="sendBrain" type="button" disabled>Send to brain</button>
+            <span class="brain-note" id="brainNote">Analyze a video first, pick the filmed zone, then send the signal.</span>
           </div>
         </div>
       </section>

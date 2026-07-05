@@ -22,15 +22,16 @@ On te fournit un SNAPSHOT JSON :
   - faits / symptômes mentionnés (ex: "ne respire plus", "malaise", "bagarre")
   - lieu explicite s'il contredit ou confirme incident.zone_id
   - niveau d'urgence perçu (mots: inconscient, arrêt, saignement, panique…)
-  Remplis transcript_analysis. Ne devine pas au-delà de ce qui est dit.
+  Ne devine pas au-delà de ce qui est dit (raisonne, mais NE renvoie PAS cette analyse).
 
 ÉTAPE 2 — MAPPING COMPÉTENCES (déterministe selon l'analyse)
   Déduis skills_needed et incident_type à partir de l'analyse, pas au hasard :
-  - arrêt cardiaque / ne respire plus / inconscient / RCP → skills_needed: ["RCP"], severity 5
-  - malaise / douleur / personne au sol sans arrêt cardiaque → ["medic","first-aid"], severity 3-4
-  - bagarre / agression / foule → ["secu"], severity 3-4
-  - brûlure / trauma sans arrêt → ["medic","first-aid"], severity 3
+  - arrêt cardiaque / ne respire plus / inconscient / cardiac arrest / not breathing / unconscious / unresponsive / CPR → skills_needed: ["RCP"], severity 5
+  - malaise / douleur / personne au sol / feeling faint / dizzy / chest pain (sans arrêt cardiaque) → ["medic","first-aid"], severity 3-4
+  - bagarre / agression / foule / fight / assault / crowd surge → ["secu"], severity 3-4
+  - brûlure / trauma / burn / injury (sans arrêt) → ["medic","first-aid"], severity 3
   - sinon : required_skills de la zone incident si présentes, sinon ["first-aid"], severity 2-3
+  incident_type = code court en ANGLAIS (ex: cardiac_arrest, medical, fall, fight, crowd, incident).
   Un agent primary DOIT posséder au moins une compétence de skills_needed.
 
 ÉTAPE 3 — SÉLECTION PRIMARY (proximité + compétences)
@@ -47,26 +48,15 @@ On te fournit un SNAPSHOT JSON :
   - préfère non-réserviste (surplus) au réserviste si les deux couvrent la compétence
   - sinon backfills: [] et warning explicite
 
-ÉTAPE 5 — AVIS AUX ALENTOURS (nearby_notice)
-  Rédige une phrase claire pour les autres agents qualifiés sur place ou proches :
-  indique le PRÉNOM/NOM du primary choisi et qu'ils ne sont PAS appelés.
-  Exemple FR : "Incident RCP au Manège Extrême : Hugo intervient. Les autres RCP sur zone, restez en place."
-
 Règles impératives :
 - primary_id ∈ candidates_primary (règle proximité+compétences ci-dessus)
 - Chaque backfill.agent_id ∈ candidates_backfill_by_zone[target_zone]
 - Ne JAMAIS inventer un id absent des pools
-- zone_id = snapshot.incident.zone_id sauf correction évidente du transcript (justifie dans transcript_analysis)
-- justification = 1-2 phrases : analyse → compétences → pourquoi ce primary (proximité)
+- zone_id = snapshot.incident.zone_id sauf correction évidente du transcript
+- justification = 1 SEULE courte phrase (≤ 15 mots) EN ANGLAIS : compétence + pourquoi ce primary (proximité). warning aussi en anglais.
 
-Réponds UNIQUEMENT en JSON strict (pas de markdown, pas de texte autour) :
+Réponds UNIQUEMENT en JSON strict (pas de markdown, pas de texte autour), COURT et minimal :
 {
-  "transcript_analysis": {
-    "summary": string,
-    "symptoms_or_facts": string[],
-    "explicit_location": string | null,
-    "caller_language": string
-  },
   "incident_type": string,
   "zone_id": string,
   "skills_needed": string[],
@@ -74,7 +64,6 @@ Réponds UNIQUEMENT en JSON strict (pas de markdown, pas de texte autour) :
   "primary_id": string,
   "backfills": [{ "agent_id": string, "target_zone": string }],
   "warning": string | null,
-  "nearby_notice": string,
   "justification": string,
   "constraints_applied": string[]
 }`;
@@ -92,12 +81,11 @@ export function buildUserMessage(snapshot, transcript) {
     '',
     `TRANSCRIPT (${lang}): "${t}"`,
     '',
-    'Exécute les ÉTAPES 1→5 dans l\'ordre.',
+    'Exécute les ÉTAPES 1→4 dans l\'ordre.',
     `Zone incident pré-détectée : ${zone}.`,
     `Candidats primary (triés proximité) : ${primaryList}.`,
     'primary_id = le plus proche ayant les compétences requises (ÉTAPE 3).',
-    'nearby_notice = message pour les autres agents qualifiés aux alentours (ÉTAPE 5).',
-    'Réponds en JSON strict uniquement.',
+    'Réponds en JSON strict, COURT et minimal.',
   ].join('\n');
 }
 

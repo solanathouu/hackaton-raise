@@ -241,7 +241,7 @@ function coverageWarning(sim, zoneId) {
   return {
     zoneId,
     etaSec,
-    message: `${z?.name || zoneId} tombera sous le minimum ~${mins} min. Accepter / réassigner ?`,
+    message: `${z?.name || zoneId} will fall below minimum in ~${mins} min. Accept / reassign?`,
   };
 }
 
@@ -319,7 +319,7 @@ export function applyDecision(decision, state, opts = {}) {
   if (!primary) {
     return {
       assignments: [],
-      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `Aucun répondant qualifié disponible pour ${incidentZone}.` }],
+      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `No qualified responder available for ${incidentZone}.` }],
       nextState: state,
       incident: buildIncident(decision, incidentId, null, [], warnings, opts, mergedConstraints),
       repaired: true,
@@ -407,16 +407,16 @@ const norm = (s) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const ZONE_ALIASES = {
-  Z1: ['entree', 'entrada', 'entrance', 'porte'],
-  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster'],
-  Z3: ['grande roue', 'noria', 'ferris'],
-  Z4: ['riviere', 'river', 'rapids', 'rapide'],
-  Z5: ['place centrale', 'plaza', 'central'],
-  Z6: ['zone enfants', 'enfants', 'ninos', 'kids', 'children'],
+  Z1: ['entree', 'entrada', 'entrance', 'porte', 'gate'],
+  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster', 'coaster'],
+  Z3: ['grande roue', 'noria', 'ferris', 'ferris wheel', 'wheel'],
+  Z4: ['riviere', 'river', 'rapids', 'rapide', 'wild river'],
+  Z5: ['place centrale', 'plaza', 'central', 'central plaza'],
+  Z6: ['zone enfants', 'enfants', 'ninos', 'kids', 'children', 'kids zone'],
   Z7: ['food court', 'restauration', 'comida', 'food'],
-  Z8: ['manege extreme', 'manege', 'extreme'],
-  Z9: ['boutique', 'tienda', 'shop', 'magasin'],
-  Z10: ['parking', 'aparcamiento'],
+  Z8: ['manege extreme', 'manege', 'extreme', 'extreme ride', 'thrill ride', 'thrill'],
+  Z9: ['boutique', 'tienda', 'shop', 'shops', 'magasin', 'stores'],
+  Z10: ['parking', 'aparcamiento', 'car park'],
 };
 
 export function detectZone(transcript, zones) {
@@ -439,7 +439,7 @@ export function detectZone(transcript, zones) {
 // Fallback déterministe : produit une Decision (Contrat C) SANS LLM.
 // Utilisé quand Crusoe est injoignable (résilience F9). applyDecision répare le reste.
 // ---------------------------------------------------------------------------
-const CARDIAC_RE = /respir|cardiaq|inconscient|desplom|no respira|unconscious|cardiac|arret|arrêt/i;
+const CARDIAC_RE = /respir|cardiaq|inconscient|desplom|no respira|unconscious|unrespons|cardiac|arret|arrêt|arrest|breath/i;
 export function deterministicDecide(snapshot, transcript = '') {
   const t = transcript || snapshot?.incident?.transcript || '';
   const cardiac = CARDIAC_RE.test(t);
@@ -448,14 +448,14 @@ export function deterministicDecide(snapshot, transcript = '') {
   const skills = cardiac ? Array.from(new Set(['RCP', ...zoneSkills])) : zoneSkills;
   const primary = (snapshot?.candidates_primary || [])[0];
   return {
-    incident_type: cardiac ? 'arret_cardiaque' : 'incident',
+    incident_type: cardiac ? 'cardiac_arrest' : 'incident',
     zone_id: zoneId,
     skills_needed: skills,
     severity: cardiac ? 5 : 3,
     primary_id: primary?.id || null,
     backfills: [], // applyDecision cascade le backfill déterministiquement
     warning: null,
-    justification: 'Dispatch déterministe : plus proche qualifié + backfill surplus-aware (couverture garantie).',
+    justification: 'Deterministic dispatch: closest qualified responder + surplus-aware backfill (coverage guaranteed).',
     constraints_applied: [],
     _degraded: true,
   };

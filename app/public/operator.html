@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CONDUCTOR · Console opérateur</title>
+  <title>CONDUCTOR · Operator console</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b0e13'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%234cc2ff' stroke-width='7'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23ff5449'/%3E%3C/svg%3E" />
   <meta name="theme-color" content="#0b0e13" />
   <style>
@@ -102,7 +102,7 @@
     #reset { background:#2a1210; border-color:#5c2320; }
     .feed { max-height:180px; overflow:auto; }
     .feed div { font:12px var(--mono); color:var(--dim); padding:4px 0; }
-    .feed:empty::after { content:'Aucune action pour l\'instant.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
+    .feed:empty::after { content:'No actions yet.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
     .empty { color:var(--dim); font-size:13px; }
   </style>
 </head>
@@ -122,32 +122,32 @@
     <div class="cols">
       <div>
         <div class="card">
-          <h2>Alertes de couverture</h2>
-          <div id="alerts"><p class="empty">Aucune alerte. Tout est couvert.</p></div>
+          <h2>Coverage alerts</h2>
+          <div id="alerts"><p class="empty">No alerts. Everything is covered.</p></div>
         </div>
         <div class="card">
           <h2>Incidents</h2>
-          <div id="incidents"><p class="empty">En attente d'un signalement vocal…</p></div>
+          <div id="incidents"><p class="empty">Waiting for a voice report…</p></div>
         </div>
       </div>
 
       <div>
         <div class="card">
-          <h2>Dispatchs</h2>
-          <div id="dispatches"><p class="empty">Aucun dispatch.</p></div>
+          <h2>Dispatches</h2>
+          <div id="dispatches"><p class="empty">No dispatches.</p></div>
         </div>
         <div class="card demo">
-          <h2>Démo</h2>
+          <h2>Demo</h2>
           <div class="row">
-            <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1</button>
-            <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2</button>
-            <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3</button>
-            <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4</button>
+            <button data-tr="someone feeling faint at the roller coaster, a person on the ground" data-l="en">S1</button>
+            <button data-tr="cardiac arrest at the extreme ride, he is not breathing" data-l="en">S2</button>
+            <button data-tr="medical emergency at the kids zone, person unconscious" data-l="en">S3</button>
+            <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en">S4</button>
             <button id="reset">Reset</button>
           </div>
         </div>
         <div class="card">
-          <h2>Journal opérateur</h2>
+          <h2>Operator log</h2>
           <div class="feed" id="oplog"></div>
         </div>
       </div>
@@ -191,12 +191,12 @@
     // Indicateur d'attente : Crusoe raisonne (~4-6 s) -> l'attente devient intentionnelle (grand écran).
     let analyseTimer = null;
     function analysing() {
-      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyse le parc…'; mode.style.display = '';
+      mode.className = 'badge analysing'; mode.textContent = 'Crusoe is analyzing the park…'; mode.style.display = '';
       clearTimeout(analyseTimer); analyseTimer = setTimeout(() => { mode.style.display = 'none'; }, 20000);
     }
     socket.on('incident', (i) => {
       clearTimeout(analyseTimer);
-      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
+      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'DEGRADED MODE'; mode.style.display = ''; }
       else if (i.source?.startsWith('crusoe')) { mode.className = 'badge live'; mode.textContent = i.model ? i.model.split('/').pop().split('-').slice(0, 2).join(' ') : 'Crusoe'; mode.style.display = ''; }
       renderIncident(i);
     });
@@ -209,13 +209,13 @@
       el.className = 'alert'; el.id = id;
       el.innerHTML = `<div class="m">${w.message}</div>
         <div class="row">
-          <button class="accept" onclick="acceptAlert('${id}','${w.zoneId}')">Accepter</button>
-          <button class="reassign" onclick="toggleReassign('${id}')">Réassigner</button>
+          <button class="accept" onclick="acceptAlert('${id}','${w.zoneId}')">Accept</button>
+          <button class="reassign" onclick="toggleReassign('${id}')">Reassign</button>
         </div>
         <div class="picker" id="pk_${id}" style="display:none">
-          Envoyer ${agentSelect(true)}
-          <input id="rs_${id}" placeholder="raison (optionnel)" style="width:160px" />
-          <button class="reassign" onclick="doReassign('${id}','${w.zoneId}')">Envoyer</button>
+          Send ${agentSelect(true)}
+          <input id="rs_${id}" placeholder="reason (optional)" style="width:160px" />
+          <button class="reassign" onclick="doReassign('${id}','${w.zoneId}')">Send</button>
         </div>`;
       box.prepend(el);
     });
@@ -231,15 +231,15 @@
     function renderIncident(i) {
       const box = $('#incidents'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div'); el.className = 'inc';
-      const sev = i.severity >= 5 ? `<span class="sev5">sévérité ${i.severity}</span>` : `sévérité ${i.severity ?? '?'}`;
-      el.innerHTML = `<div class="h">${i.type || 'incident'} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
+      const sev = i.severity >= 5 ? `<span class="sev5">severity ${i.severity}</span>` : `severity ${i.severity ?? '?'}`;
+      el.innerHTML = `<div class="h">${(i.type || 'incident').replace(/_/g, ' ')} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
         ${i.justification ? `<div class="j">${i.justification}</div>` : ''}
         <div class="meta">${i.transcript ? '« ' + i.transcript + ' »' : ''}</div>
         <div class="row" style="margin-top:8px">
           <span style="font-size:12px;color:var(--dim)">override →</span>
           ${agentSelect(false)}
-          <input placeholder="raison (ex: protège Marco)" style="width:150px" />
-          <button class="reassign" onclick="overridePrimary(this,'${i.id}')">Réassigner</button>
+          <input placeholder="reason (e.g. protect Ibra)" style="width:150px" />
+          <button class="reassign" onclick="overridePrimary(this,'${i.id}')">Reassign</button>
         </div>`;
       box.prepend(el);
     }
@@ -261,11 +261,11 @@
     // --- journal opérateur ---
     const oplog = (t) => { const d = document.createElement('div'); d.textContent = `${new Date().toLocaleTimeString('fr-FR')} · ${t}`; $('#oplog').prepend(d); };
     socket.on('override_log', (o) => oplog(`override → ${o.newAgentId}${o.reason ? ` (${o.reason})` : ''}`));
-    socket.on('operator_log', (o) => oplog(o.action === 'accept' ? `trou accepté (${o.zoneId})` : `renfort ${o.agentId} → ${o.zoneId}${o.reason ? ` (${o.reason})` : ''}`));
+    socket.on('operator_log', (o) => oplog(o.action === 'accept' ? `gap accepted (${o.zoneId})` : `reinforcement ${o.agentId} → ${o.zoneId}${o.reason ? ` (${o.reason})` : ''}`));
 
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach((b) => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); });
-    $('#reset').onclick = () => { socket.emit('reset'); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">En attente d\'un signalement vocal…</p>'; $('#alerts').innerHTML = '<p class="empty">Aucune alerte. Tout est couvert.</p>'; $('#dispatches').innerHTML = '<p class="empty">Aucun dispatch.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
+    $('#reset').onclick = () => { socket.emit('reset'); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>'; $('#alerts').innerHTML = '<p class="empty">No alerts. Everything is covered.</p>'; $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
   </script>
 </body>
 </html>

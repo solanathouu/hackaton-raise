@@ -7,7 +7,7 @@ function clone(value) {
 }
 
 function formatSkills(skills) {
-  return skills.length ? skills.join(", ") : "couverture générale";
+  return skills.length ? skills.join(", ") : "general cover";
 }
 
 function getDistance(a, b) {
@@ -69,10 +69,10 @@ export class DispatchEngine extends EventTarget {
     this.constraints[name] = enabled;
     this.emit("decision", {
       kind: "constraint",
-      title: enabled ? "Contrainte opérateur appliquée" : "Contrainte opérateur levée",
+      title: enabled ? "Operator constraint applied" : "Operator constraint lifted",
       body: enabled
-        ? "La paire RCP du Grand Huit est protégée sauf en dernier recours."
-        : "La paire RCP du Grand Huit redevient mobilisable.",
+        ? "The roller coaster RCP pair is protected except as a last resort."
+        : "The roller coaster RCP pair is available again.",
       tone: "neutral"
     });
   }
@@ -300,24 +300,24 @@ export class DispatchEngine extends EventTarget {
     this.emit("incident", { incident });
     this.emit("decision", {
       kind: "parse",
-      title: `Incident : ${zone.name}`,
-      body: `${incident.type.replaceAll("_", " ")} · ${formatSkills(incident.skillsNeeded)} · sévérité ${incident.severity}/5`,
+      title: `Incident: ${zone.name}`,
+      body: `${incident.type.replaceAll("_", " ")} · ${formatSkills(incident.skillsNeeded)} · severity ${incident.severity}/5`,
       tone: "hot"
     });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `Signalement vocal à ${zone.name}. Je lis ${incident.type.replaceAll("_", " ")}. Compétence requise : ${formatSkills(incident.skillsNeeded)}.`
+      text: `Voice report at ${zone.name}. I'm reading ${incident.type.replaceAll("_", " ")}. Skill required: ${formatSkills(incident.skillsNeeded)}.`
     });
 
     const candidates = this.choosePrimary(incident);
     if (!candidates.length) {
       incident.status = "warning";
-      incident.warnings.push("Aucun répondant qualifié disponible.");
+      incident.warnings.push("No qualified responder available.");
       this.emit("decision", {
         kind: "warning",
         zoneId: incident.zoneId,
-        title: "Aucun répondant qualifié disponible",
-        body: `L'opérateur doit affecter manuellement ${formatSkills(incident.skillsNeeded)} pour ${zone.name}.`,
+        title: "No qualified responder available",
+        body: `The operator must manually assign ${formatSkills(incident.skillsNeeded)} to ${zone.name}.`,
         tone: "danger"
       });
       this.emit("coverage", this.getCoverage(false));
@@ -340,13 +340,13 @@ export class DispatchEngine extends EventTarget {
     this.emit("decision", {
       kind: "dispatch",
       title: `${agent.name} → ${incident.zoneName}`,
-      body: `${agent.name} est le répondant qualifié (${formatSkills(incident.skillsNeeded)}) le plus proche. ${choice.createsGap ? `Son départ de ${this.zone(sourceZone).name} crée un trou : backfill lancé.` : `Le départ de ${this.zone(sourceZone).name} reste dans les minima.`}`,
+      body: `${agent.name} is the closest qualified responder (${formatSkills(incident.skillsNeeded)}). ${choice.createsGap ? `Leaving ${this.zone(sourceZone).name} creates a gap: backfill launched.` : `Leaving ${this.zone(sourceZone).name} stays within minimums.`}`,
       tone: choice.createsGap ? "warning" : "success"
     });
     this.emit("assignment", { assignment, incident });
     this.emit("speak", {
       speaker: agent.name,
-      text: `${agent.name}, bien reçu. Personne au sol à ${incident.zoneName}. J'y vais.`
+      text: `${agent.name}, copy that. Person down at ${incident.zoneName}. On my way.`
     });
 
     agent.status = "pending_ack";
@@ -379,13 +379,13 @@ export class DispatchEngine extends EventTarget {
     agent.assignmentId = null;
     this.emit("decision", {
       kind: "timeout",
-      title: `${agent.name} n'a pas accusé réception`,
-      body: "Conductor referme la boucle et re-route vers le répondant qualifié suivant.",
+      title: `${agent.name} did not acknowledge`,
+      body: "Conductor closes the loop and re-routes to the next qualified responder.",
       tone: "danger"
     });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `Pas d'accusé de ${agent.name}. Re-routage immédiat de l'incident.`
+      text: `No acknowledgment from ${agent.name}. Re-routing the incident immediately.`
     });
     this.dispatchPrimary(incident, candidates, candidateIndex + 1);
   }
@@ -400,13 +400,13 @@ export class DispatchEngine extends EventTarget {
     this.emit("ack", { agentId: agent.id });
     this.emit("decision", {
       kind: "ack",
-      title: `${agent.name} a accusé réception`,
-      body: `ETA ${Math.max(8, Math.round(assignment.travelTime / RESPONSE_SPEEDUP))} s vers ${incident.zoneName}.`,
+      title: `${agent.name} acknowledged`,
+      body: `ETA ${Math.max(8, Math.round(assignment.travelTime / RESPONSE_SPEEDUP))} s to ${incident.zoneName}.`,
       tone: "success"
     });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `${agent.name} a confirmé. ${agent.name}, rejoins ${incident.zoneName}.`
+      text: `${agent.name} confirmed. ${agent.name}, head to ${incident.zoneName}.`
     });
     this.planBackfills(incident, new Set([agent.id]));
     this.emit("coverage", this.getCoverage(false));
@@ -431,18 +431,18 @@ export class DispatchEngine extends EventTarget {
       const candidate = this.findBackfillCandidate(deficit.zoneId, deficit.missingSkills, usedAgentIds, hop);
       if (!candidate) {
         const zone = this.zone(deficit.zoneId);
-        const warning = `${zone.name} restera sous le minimum : ${deficit.label || "couverture"} non résolu.`;
+        const warning = `${zone.name} will stay below minimum: ${deficit.label || "coverage"} unresolved.`;
         incident.warnings.push(warning);
         this.emit("decision", {
           kind: "warning",
           zoneId: deficit.zoneId,
-          title: `Alerte opérateur : trou de couverture à ${zone.name}`,
+          title: `Operator alert: coverage gap at ${zone.name}`,
           body: warning,
           tone: "danger"
         });
         this.emit("speak", {
           speaker: "Conductor",
-          text: `Alerte. Aucun backfill propre pour ${zone.name}. Validation opérateur requise.`
+          text: `Alert. No clean backfill for ${zone.name}. Operator validation required.`
         });
         break;
       }
@@ -472,14 +472,14 @@ export class DispatchEngine extends EventTarget {
 
     this.emit("decision", {
       kind: "backfill",
-      title: `Hop ${hop} : ${agent.name} backfill ${target.name}`,
-      body: `${sourceName} → ${target.name}. ${candidate.safe ? "Aucun trou de second ordre créé." : "Crée un trou de second ordre, la cascade continue."}`,
+      title: `Hop ${hop}: ${agent.name} backfills ${target.name}`,
+      body: `${sourceName} → ${target.name}. ${candidate.safe ? "No second-order gap created." : "Creates a second-order gap, the cascade continues."}`,
       tone: candidate.safe ? "success" : "warning"
     });
     this.emit("assignment", { assignment, incident });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `${agent.name}, rejoins ${target.name} en renfort. Referme le trou de couverture.`
+      text: `${agent.name}, head to ${target.name} as backfill. Close the coverage gap.`
     });
     this.emit("move", {
       agentId: agent.id,
@@ -526,13 +526,13 @@ export class DispatchEngine extends EventTarget {
       if (backfill) backfill.status = "done";
       this.emit("decision", {
         kind: "restore",
-        title: `${this.zone(targetZone).name} — couverture rétablie`,
-        body: `${agent.name} couvre maintenant la zone. Le trou est refermé.`,
+        title: `${this.zone(targetZone).name} — coverage restored`,
+        body: `${agent.name} is now covering the zone. The gap is closed.`,
         tone: "success"
       });
       this.emit("speak", {
         speaker: "Conductor",
-        text: `Couverture de ${this.zone(targetZone).name} rétablie par ${agent.name}.`
+        text: `Coverage of ${this.zone(targetZone).name} restored by ${agent.name}.`
       });
       this.emit("coverage", this.getCoverage(false));
       return;
@@ -543,13 +543,13 @@ export class DispatchEngine extends EventTarget {
       incident.status = "on_scene";
       this.emit("decision", {
         kind: "onscene",
-        title: `${agent.name} sur place`,
-        body: "Le couloir ambulance se dégage pendant que le répondant stabilise la scène.",
+        title: `${agent.name} on scene`,
+        body: "The ambulance lane clears while the responder stabilizes the scene.",
         tone: "hot"
       });
       this.emit("speak", {
         speaker: agent.name,
-        text: `${agent.name} auprès du visiteur. Préparation du transfert vers l'ambulance.`
+        text: `${agent.name} with the visitor. Preparing transfer to the ambulance.`
       });
       setTimeout(() => this.transportToAmbulance(agentId, incidentId), 2600);
     }
@@ -563,13 +563,13 @@ export class DispatchEngine extends EventTarget {
     incident.status = "transporting";
     this.emit("decision", {
       kind: "ambulance",
-      title: `Transfert ambulance ouvert`,
-      body: `${agent.name} escorte le patient vers le point ambulance de la porte de service.`,
+      title: `Ambulance transfer opened`,
+      body: `${agent.name} escorts the patient to the ambulance point at the service gate.`,
       tone: "neutral"
     });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `Point ambulance prêt. ${agent.name}, amène le patient à la porte de service.`
+      text: `Ambulance point ready. ${agent.name}, bring the patient to the service gate.`
     });
     this.emit("move", {
       agentId,
@@ -595,13 +595,13 @@ export class DispatchEngine extends EventTarget {
     if (assignment) assignment.status = "done";
     this.emit("decision", {
       kind: "closed",
-      title: `Incident ${incident.zoneName} clôturé`,
-      body: `Patient remis à l'ambulance. ${agent.name} est disponible au Parking.`,
+      title: `Incident ${incident.zoneName} closed`,
+      body: `Patient handed to the ambulance. ${agent.name} is available at the parking.`,
       tone: "success"
     });
     this.emit("speak", {
       speaker: "Conductor",
-      text: `Transfert terminé. Incident ${incident.zoneName} clôturé.`
+      text: `Transfer complete. Incident ${incident.zoneName} closed.`
     });
     this.emit("coverage", this.getCoverage(false));
   }
