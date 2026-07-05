@@ -9,7 +9,7 @@ import {
   agentById,
   candidatesNearbyNotice,
 } from './engine.js';
-import { decide } from './integrations/crusoe.js';
+import { decide, alignPrimaryToOptimal } from './integrations/crusoe.js';
 import { transcribe, speak } from './integrations/gradium.js';
 
 // Libellés d'incident par langue (pour le TTS traduit du répondant, F7).
@@ -104,12 +104,31 @@ export async function handleIncident({ state, audio, transcript, langHint, incid
   }
 
   const zoneGuess = detectZone(transcript, state.zones);
-  const incidentZone = zoneGuess || state.zones[0]?.id; // jamais de zone nulle (apport P4)
-  const snapshot = buildSnapshot(state, incidentZone, { transcript, lang });
+  let incidentZone = zoneGuess || state.zones[0]?.id; // jamais de zone nulle (apport P4)
+  let snapshot = buildSnapshot(state, incidentZone, {
+    transcript, lang,
+    zone_source: zoneGuess ? 'detected' : 'default', // 'default' = aucun mot-clé reconnu
+  });
   const decision = await decide(snapshot, transcript);
   decision._transcript = transcript;
   decision._lang = lang;
-  if (incidentZone) decision.zone_id = incidentZone; // la zone détectée prime sur le LLM
+  if (zoneGuess) {
+    decision.zone_id = zoneGuess; // mot-clé reconnu : la détection déterministe prime sur le LLM
+  } else if (decision.zone_id && decision.zone_id !== incidentZone && zoneById(state, decision.zone_id)) {
+    // Aucun mot-clé reconnu : la zone COMPRISE par le LLM prime sur le défaut « première zone »
+    // (sinon tout incident formulé hors vocabulaire atterrit à l'Entrée). Les pools du snapshot
+    // avaient été calculés pour la mauvaise zone -> on les recalcule et on réaligne le primary
+    // avec la MÊME règle déterministe (plus proche qualifié). Backfills laissés vides : le
+    // moteur les cascade lui-même pour la vraie zone (comme en mode dégradé).
+    incidentZone = decision.zone_id;
+    snapshot = buildSnapshot(state, incidentZone, { transcript, lang, zone_source: 'llm' });
+    const realigned = alignPrimaryToOptimal(decision, snapshot);
+    decision.primary_id = realigned.primary_id;
+    decision.constraints_applied = realigned.constraints_applied;
+    decision.backfills = [];
+  } else {
+    decision.zone_id = incidentZone; // LLM sans meilleure idée (ou zone inconnue) : défaut assumé
+  }
 
   const { assignments, warnings, nextState, incident, repaired } = applyDecision(decision, state, {
     incidentId,

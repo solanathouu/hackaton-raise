@@ -75,6 +75,11 @@ export function buildUserMessage(snapshot, transcript) {
   const primaryList = (snapshot?.candidates_primary || [])
     .map((c) => `${c.id}(${c.name}, ${c.travel_time_s}s, skills=${(c.skills || []).join('+')})`)
     .join('; ') || '(vide)';
+  // zone_source='default' : detectZone n'a reconnu AUCUN mot-clé -> zone_id n'est qu'un défaut,
+  // le modèle doit déduire la zone du transcript (le validateur n'acceptera qu'un id de zones[]).
+  const zoneLine = snapshot?.incident?.zone_source === 'default'
+    ? `Zone incident NON détectée par mots-clés — "${zone}" n'est qu'un DÉFAUT. Déduis zone_id du transcript parmi zones[] (id exact) ; si vraiment indéterminable, garde ${zone}.`
+    : `Zone incident pré-détectée : ${zone}.`;
   return [
     'SNAPSHOT:',
     JSON.stringify(snapshot),
@@ -82,7 +87,7 @@ export function buildUserMessage(snapshot, transcript) {
     `TRANSCRIPT (${lang}): "${t}"`,
     '',
     'Exécute les ÉTAPES 1→4 dans l\'ordre.',
-    `Zone incident pré-détectée : ${zone}.`,
+    zoneLine,
     `Candidats primary (triés proximité) : ${primaryList}.`,
     'primary_id = le plus proche ayant les compétences requises (ÉTAPE 3).',
     'Réponds en JSON strict, COURT et minimal.',
