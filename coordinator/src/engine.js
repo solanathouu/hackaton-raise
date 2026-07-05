@@ -6,6 +6,10 @@
 //   2. Ponction : réservistes (gratuit) -> surplus -> (forcé => warning).
 //   3. Cascade 2 hops max, sinon warning.
 
+// Seule entorse au zéro-import : la joignabilité (pure fonction agent+horloge).
+// Un agent silencieux >30 s (téléphone mort) ne doit jamais être dispatché.
+import { isReachable } from './presence.js';
+
 export const EMERGENCY_SKILLS = ['RCP', 'DAE', 'medic', 'first-aid', 'secu'];
 
 // ---------------------------------------------------------------------------
@@ -90,6 +94,8 @@ function annotate(state, agent, refZone, extra = {}) {
     current_zone: agent.current_zone,
     travel_time_s: travelTime(state, agent.current_zone, refZone),
     is_reserve: agent.is_reserve,
+    // batterie (additif, si heartbeat reçu) : tie-break LLM à distance égale
+    ...(agent.battery != null ? { battery: agent.battery } : {}),
     ...extra,
   };
 }
@@ -129,7 +135,7 @@ export function candidatesPrimary(state, incidentZoneId, skillsNeeded) {
       ? z.required_skills
       : EMERGENCY_SKILLS;
   return state.agents
-    .filter((a) => a.status === 'available' && !protectedSet.has(a.id))
+    .filter((a) => a.status === 'available' && !protectedSet.has(a.id) && isReachable(a))
     .filter((a) => (a.skills || []).some((sk) => relevant.includes(sk)))
     .map((a) => annotate(state, a, incidentZoneId, { safe: safeToPull(state, a) }))
     .sort((x, y) => (x.travel_time_s ?? 1e9) - (y.travel_time_s ?? 1e9) || x.id.localeCompare(y.id));
@@ -141,7 +147,7 @@ export function candidatesBackfill(state, targetZoneId, excludeIds = []) {
   const { protectedSet } = protectedAgentIds(state);
   const need = z?.required_skills || [];
   return state.agents
-    .filter((a) => a.status === 'available' && !excludeIds.includes(a.id) && !protectedSet.has(a.id))
+    .filter((a) => a.status === 'available' && !excludeIds.includes(a.id) && !protectedSet.has(a.id) && isReachable(a))
     .filter((a) => a.current_zone !== targetZoneId) // déjà sur zone = inutile
     .filter((a) => safeToPull(state, a))
     .filter((a) => need.length === 0 || (a.skills || []).some((sk) => need.includes(sk)))
