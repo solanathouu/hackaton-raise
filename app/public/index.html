@@ -150,6 +150,9 @@
     .dispatch.witness::before { color:var(--dim); opacity:.35; }
     .dispatch.done { opacity:.42; border-left-color:var(--ok); }
     .dispatch.done::before { content:'✓'; color:var(--ok); opacity:.5; }
+    .dispatch.timeout { opacity:.5; border-left-color:var(--warn); }
+    .dispatch.timeout::before { content:'⏱'; color:var(--warn); opacity:.75; }
+    .dispatch.timeout .timeout-note { display:block; margin-top:10px; font-size:12px; color:var(--warn); font-weight:600; }
     /* liseré cohérent avec le tag de rôle */
     .dispatch.primary { border-left-color:var(--bad); }
     .dispatch.backfill { border-left-color:var(--accent); }
@@ -163,14 +166,32 @@
     .dispatch .t { font-size:17px; font-weight:600; line-height:1.4; margin-bottom:14px; }
     .dispatch .row { display:flex; gap:8px; }
     .ackbtn {
-      /* vert assombri : blanc/vert passe WCAG AA (bouton critique, lisible au soleil) */
-      flex:1; background:linear-gradient(180deg, #27995a, #1e7a47); border:none; color:#fff;
+      position:relative; overflow:hidden; isolation:isolate;
+      flex:1; background:#2a3038; border:none; color:#fff;
       font:700 15px/1 -apple-system, system-ui, sans-serif;
       letter-spacing:.5px; padding:15px; border-radius:var(--r);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 6px 18px rgba(0,0,0,.3);
-      transition:transform .15s var(--ease);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.3);
+      transition:transform .15s var(--ease), color .25s var(--ease);
+      --ack-progress:1;
     }
-    .ackbtn:active { transform:scale(.975); }
+    .ackbtn .ack-fill {
+      position:absolute; left:0; top:0; bottom:0; width:calc(var(--ack-progress) * 100%);
+      background:linear-gradient(180deg, #27995a, #1e7a47);
+      transition:width .25s linear;
+      z-index:0;
+    }
+    .ackbtn .ack-label { position:relative; z-index:1; }
+    .ackbtn.urgent:not(.expired) .ack-fill {
+      background:linear-gradient(180deg, #d94a38, #a83224);
+      animation:ackpulse .85s ease-in-out infinite;
+    }
+    @keyframes ackpulse { 50% { filter:brightness(1.12); } }
+    .ackbtn.expired {
+      background:#3a424a; color:#8b96a5; box-shadow:none; cursor:not-allowed;
+    }
+    .ackbtn.expired .ack-fill { width:0 !important; }
+    .ackbtn:active:not(.expired):not(:disabled) { transform:scale(.975); }
+    .ackbtn:disabled { pointer-events:none; }
     .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
     .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 0; }
 
@@ -360,8 +381,14 @@
     let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || (demoMode ? 'W1' : 'A7');
     let lang = 'fr';
     let lastState = null;
+    let ackTimeoutMs = 15000;
+    const ackCountdowns = new Map();
     const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
+
+    fetch('/health').then((r) => r.json()).then((h) => {
+      if (h.ackTimeoutMs > 0) ackTimeoutMs = h.ackTimeoutMs;
+    }).catch(() => {});
 
     function showGuidance(g) {
       const el = $('#guidance');
@@ -610,27 +637,113 @@
     $('#who').onchange = (e) => pickAgent(e.target.value);
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
+    function clearAckCountdown(assignmentId) {
+      const t = ackCountdowns.get(assignmentId);
+      if (!t) return;
+      clearInterval(t.interval);
+      ackCountdowns.delete(assignmentId);
+    }
+
+    function ackBtnHtml(assignmentId, targetZone, label) {
+      return `<button class="ackbtn" data-aid="${assignmentId}" onclick="ackIt('${assignmentId}','${targetZone}')"><span class="ack-fill"></span><span class="ack-label">${label}</span></button>`;
+    }
+
+    function updateAckButton(btn, remSec, progress) {
+      btn.style.setProperty('--ack-progress', String(Math.max(0, Math.min(1, progress))));
+      const label = btn.querySelector('.ack-label');
+      if (label) label.textContent = remSec > 0 ? `I'll handle it (${remSec}s)` : 'Timed out';
+      btn.classList.toggle('urgent', remSec > 0 && remSec <= 5);
+      btn.classList.toggle('expired', remSec <= 0);
+      if (remSec <= 0) btn.disabled = true;
+    }
+
+    function startAckCountdown(d) {
+      if (d.role === 'witness') return;
+      clearAckCountdown(d.assignmentId);
+      const card = document.getElementById('d_' + d.assignmentId);
+      const btn = card?.querySelector('.ackbtn');
+      if (!btn) return;
+      const deadline = (d.sentAt || Date.now()) + ackTimeoutMs;
+      const tick = () => {
+        const remMs = deadline - Date.now();
+        const remSec = Math.max(0, Math.ceil(remMs / 1000));
+        updateAckButton(btn, remSec, remMs / ackTimeoutMs);
+        if (remMs <= 0) {
+          clearAckCountdown(d.assignmentId);
+          card.classList.add('timeout');
+        }
+      };
+      tick();
+      ackCountdowns.set(d.assignmentId, { interval: setInterval(tick, 250), deadline });
+    }
+
+    function markAckTimedOut(data) {
+      clearAckCountdown(data.assignmentId);
+      const card = document.getElementById('d_' + data.assignmentId);
+      if (!card) return;
+      card.classList.add('timeout', 'done');
+      const btn = card.querySelector('.ackbtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('expired');
+        updateAckButton(btn, 0, 0);
+        const label = btn.querySelector('.ack-label');
+        if (label) {
+          label.textContent = data.reroutedTo
+            ? `Rerouted to ${data.reroutedTo.replace(/^[ARW]/, '')}`
+            : 'Timed out — rerouting…';
+        }
+      }
+      let note = card.querySelector('.timeout-note');
+      if (!note) {
+        note = document.createElement('div');
+        note.className = 'timeout-note';
+        card.appendChild(note);
+      }
+      note.textContent = data.reroutedTo
+        ? `Rerouted to next responder (${data.reroutedTo})`
+        : 'No ack in time — operator may intervene';
+    }
+
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
     socket.on('dispatch', (d) => {
       // Un re-route du même incident+rôle remplace l'ancienne consigne : on grise les cartes
       // obsolètes pour qu'il n'y ait toujours qu'UNE action verte possible.
       document.querySelectorAll(`#dispatches .dispatch[data-inc="${d.incidentId}"][data-role="${d.role}"]`)
-        .forEach((old) => old.classList.add('done'));
+        .forEach((old) => {
+          clearAckCountdown(old.id.replace(/^d_/, ''));
+          old.classList.add('done');
+        });
+      const totalSec = Math.ceil(ackTimeoutMs / 1000);
       const el = document.createElement('div');
       el.className = 'dispatch ' + (d.role || '');
       el.id = 'd_' + d.assignmentId;
       el.dataset.inc = d.incidentId; el.dataset.role = d.role;
+      const ackLabel = d.role === 'witness' ? 'On my way' : `I'll handle it (${totalSec}s)`;
       el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${d.lang}</span></div>
         <div class="t">${d.text}</div>
-        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">On my way</button>
+        <div class="row">${d.role !== 'witness' ? ackBtnHtml(d.assignmentId, d.targetZone, ackLabel) : `<button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')"><span class="ack-label">${ackLabel}</span></button>`}
         ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Replay</button>`:''}</div>`;
       const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML='';
       box.prepend(el);
+      if (d.role !== 'witness') startAckCountdown(d);
       if (d.audioUrl) playAudio(d.audioUrl);
       if (navigator.vibrate) navigator.vibrate([120,60,120]);
       switchView('radio');
     });
-    window.ackIt = (id, target) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); if (target) { showRoute(target); switchView('map'); } };
+    window.ackIt = (id, target) => {
+      clearAckCountdown(id);
+      socket.emit('ack', { assignmentId: id });
+      const el = $('#d_' + id);
+      if (el) { el.classList.add('done'); el.classList.remove('timeout'); }
+      if (target) { showRoute(target); switchView('map'); }
+    };
+    socket.on('ack_timeout', (data) => {
+      markAckTimedOut(data);
+      feed(data.reroutedTo
+        ? `⏱ No ack in time · rerouted ${data.role} to <b>${data.reroutedTo}</b>`
+        : `⏱ No ack in time for ${data.targetZone}`, 'warn');
+    });
     window.playAudio = (url) => { new Audio(url).play().catch(()=>{}); };
 
     // --- feed opérateur ---
@@ -698,7 +811,12 @@
       feed(`✋ override: "protect ${protectName}" → constraint learned. Re-run S2: the engine will no longer pull ${protectName}.`, 'cstr');
     };
     $('#scanRepo').onclick = () => { socket.emit('scan_reposition'); feed('↗ Reposition scan requested', 'guide'); };
-    $('#reset').onclick = () => { socket.emit('reset', { demo: demoMode }); $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on'); };
+    $('#reset').onclick = () => {
+      for (const t of ackCountdowns.values()) clearInterval(t.interval);
+      ackCountdowns.clear();
+      socket.emit('reset', { demo: demoMode });
+      $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on');
+    };
   </script>
 </body>
 </html>

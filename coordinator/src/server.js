@@ -61,6 +61,7 @@ app.get('/health', (_req, res) => {
     mockGradium: config.mockGradium,
     persist: store.enabled,
     demoMode,
+    ackTimeoutMs: config.ackTimeoutMs,
     crusoe: {
       liveReady: crusoeLive.ok,
       model: config.crusoe.model,
@@ -158,11 +159,12 @@ function clearPending(agentId, assignmentId) {
 
 // --- Émission d'un dispatch + accusé + persistance + suivi replay ----------
 function emitDispatch(d) {
-  io.to(`agent:${d.agentId}`).emit('dispatch', d);
-  io.emit('dispatch_log', d); // console opérateur (feed)
-  store.logEvent('dispatch', d);
+  const payload = { ...d, sentAt: d.sentAt ?? Date.now() };
+  io.to(`agent:${d.agentId}`).emit('dispatch', payload);
+  io.emit('dispatch_log', payload); // console opérateur (feed)
+  store.logEvent('dispatch', payload);
   // Les témoins (witness) ne sont ni acquittés ni ré-routés : pas de tracking/timer.
-  if (d.role !== 'witness') { trackPending(d); armAck(d); }
+  if (payload.role !== 'witness') { trackPending(payload); armAck(payload); }
 }
 
 function armAck(dispatch) {
@@ -180,9 +182,17 @@ function onAckTimeout(dispatch) {
   clearPending(dispatch.agentId, dispatch.assignmentId);
   store.setAssignmentStatus(dispatch.assignmentId, 'timeout');
 
+  const timeoutPayload = {
+    assignmentId: dispatch.assignmentId,
+    incidentId: dispatch.incidentId,
+    role: dispatch.role,
+    targetZone: dispatch.targetZone,
+    reroutedTo: null,
+  };
   const rc = ctx?.rerouteCount || new Map();
   const count = (rc.get(dispatch.role + dispatch.targetZone) || 0) + 1;
   if (!ctx || count > 2) {
+    io.to(`agent:${dispatch.agentId}`).emit('ack_timeout', timeoutPayload);
     io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No ack for ${dispatch.targetZone} after re-routes. Operator intervention required.` });
     return;
   }
@@ -196,6 +206,7 @@ function onAckTimeout(dispatch) {
       ? candidatesPrimary(state, ctx.zoneId, ctx.skills).find((c) => !excl.includes(c.id))
       : candidatesBackfill(state, dispatch.targetZone, excl)[0];
   if (!next) {
+    io.to(`agent:${dispatch.agentId}`).emit('ack_timeout', timeoutPayload);
     io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No candidate left for ${dispatch.targetZone}.` });
     return;
   }
@@ -205,6 +216,7 @@ function onAckTimeout(dispatch) {
   state.assignments.push(newAs);
   store.logAssignment(newAs);
   broadcastState();
+  io.to(`agent:${dispatch.agentId}`).emit('ack_timeout', { ...timeoutPayload, reroutedTo: next.id });
   emitDispatch({ assignmentId: newAs.id, incidentId: dispatch.incidentId, role: dispatch.role, targetZone: dispatch.targetZone, agentId: next.id, text: `${dispatch.text} (re-route)`, audioUrl: dispatch.audioUrl, lang: dispatch.lang });
   console.log(`[reroute] ${dispatch.assignmentId} -> ${next.id} (${dispatch.role} ${dispatch.targetZone})`);
 }
