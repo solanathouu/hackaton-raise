@@ -14,6 +14,7 @@ import { Server as SocketServer } from 'socket.io';
 import { config, loadSeed, assertCrusoeLiveWorkflowOrExit, validateCrusoeLiveWorkflow } from './config.js';
 import { buildState, serializeState, setPosition, setStatus, commitAgents, nextIncidentId, addConstraint } from './state.js';
 import { candidatesPrimary, candidatesBackfill, zoneById, agentById } from './engine.js';
+import { markHeartbeat } from './presence.js';
 import { handleIncident } from './agent.js';
 import { createStore } from './persistence.js';
 import { prewarmCrusoe } from './integrations/crusoe.js';
@@ -34,6 +35,7 @@ const pendingByAgent = new Map();  // agentId -> Map(assignmentId -> dispatch)  
 // c'est de la télémétrie ambiante, pas du roster. zoneId -> dernier payload.
 const crowdDensity = new Map();
 const densityWarnedAt = new Map(); // zoneId -> ts (anti-spam)
+let lastPresenceBroadcast = 0;     // throttle du broadcast state sur heartbeat
 const DENSITY_RATIO_ALERT = Number(process.env.DENSITY_RATIO_ALERT || 1.5);
 const DENSITY_WARN_COOLDOWN_MS = Number(process.env.DENSITY_WARN_COOLDOWN_MS || 120000);
 
@@ -287,6 +289,15 @@ io.on('connection', (socket) => {
 
   socket.on('position', ({ agentId, zoneId }) => {
     if (setPosition(state, agentId, zoneId)) broadcastState();
+  });
+
+  // Preuve de vie (additif, hors Contrat A) : les téléphones émettent toutes les 10 s.
+  // Met à jour last_heartbeat/battery ; la position reste pilotée par l'event `position`.
+  // Broadcast throttlé : les indicateurs console n'ont pas besoin du temps réel strict.
+  socket.on('heartbeat', ({ agentId, battery }) => {
+    if (!markHeartbeat(state, agentId, { battery })) return;
+    const now = Date.now();
+    if (now - lastPresenceBroadcast > 5000) { lastPresenceBroadcast = now; broadcastState(); }
   });
 
   // Capteur de densité (BLE) — télémétrie ambiante rebroadcastée à tous (carte +
