@@ -72,13 +72,14 @@ test('STT réel : hint lang prioritaire sur la détection', async () => {
   assert.equal(out.lang, 'es');
 });
 
-test('STT réel : HTTP 500 sans whisper -> retombe sur la fixture mock (F9, ne throw pas)', async () => {
+test('STT réel : HTTP 500 sans whisper -> throw (plus de fixture fabriquée sur le vrai micro)', async () => {
+  // Durcissement STT (c216656) : sur le VRAI micro, une STT en échec ne fabrique plus une
+  // fausse transcription (jamais d'incident inventé) -> elle remonte l'erreur. Le mode dégradé
+  // F9 reste couvert par MOCK_GRADIUM (fixture en tête de transcribe()).
   const { transcribe } = await gradium();
   sttBehavior = 'http500';
   const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVE'), Buffer.alloc(16)]);
-  const out = await transcribe(wav);
-  assert.equal(out.lang, 'fr');
-  assert.match(out.text, /arrêt cardiaque/);
+  await assert.rejects(() => transcribe(wav), /STT vide|Gradium STT 500/);
   sttBehavior = 'ok';
 });
 
