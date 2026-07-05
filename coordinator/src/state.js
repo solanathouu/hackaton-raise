@@ -26,6 +26,9 @@ export function serializeState(state) {
       current_zone: a.current_zone,
       is_reserve: a.is_reserve,
       status: a.status,
+      // présence (additif) : absent tant qu'aucun heartbeat -> joignable par défaut
+      ...(a.last_heartbeat ? { last_heartbeat: a.last_heartbeat } : {}),
+      ...(a.battery != null ? { battery: a.battery } : {}),
     })),
     zones: state.zones.map((z) => ({
       id: z.id,

@@ -104,6 +104,13 @@
     .feed div { font:12px var(--mono); color:var(--dim); padding:4px 0; }
     .feed:empty::after { content:'Aucune action pour l\'instant.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
     .empty { color:var(--dim); font-size:13px; }
+
+    /* présence (heartbeat) : vert = joignable, gris = silencieux >30 s */
+    .agents { display:flex; flex-wrap:wrap; gap:4px 12px; margin:6px 0 2px; }
+    .ag { font:11.5px var(--mono); display:inline-flex; align-items:center; gap:5px; }
+    .ag .pdot { width:7px; height:7px; border-radius:50%; background:var(--ok); box-shadow:0 0 6px rgba(46,168,98,.45); flex:none; }
+    .ag.off { color:var(--dim); } .ag.off .pdot { background:#8b96a5; box-shadow:none; }
+    .ag .bat { color:var(--dim); }
   </style>
 </head>
 <body>
@@ -118,6 +125,8 @@
   <main>
     <!-- bandeau couverture : les 10 zones d'un coup d'œil -->
     <div class="zones" id="zones"></div>
+    <!-- présence : point vert = joignable, gris = silencieux >30 s (téléphone mort ?) -->
+    <div class="agents" id="agentsbar"></div>
 
     <div class="cols">
       <div>
@@ -173,9 +182,24 @@
       return `<select>${list.map((a) => `<option value="${a.id}">${agentLabel(a)}</option>`).join('')}</select>`;
     }
 
+    // --- présence (heartbeat) : vert = joignable, gris = silencieux >30 s.
+    // Sans heartbeat (agent simulé / ancien client) = joignable par défaut, comme le serveur.
+    const REACHABLE_MS = 30000;
+    function renderAgents() {
+      if (!agents.length) return;
+      const now = Date.now();
+      $('#agentsbar').innerHTML = agents.map((a) => {
+        const silent = a.last_heartbeat && now - a.last_heartbeat > REACHABLE_MS;
+        const title = `${a.name} · ${a.status}` + (a.last_heartbeat ? (silent ? ' · silencieux (exclu du dispatch)' : '') : ' · pas de heartbeat (joignable par défaut)');
+        return `<span class="ag${silent ? ' off' : ''}" title="${title}"><span class="pdot"></span>${a.id}${a.battery != null ? `<span class="bat">${a.battery}%</span>` : ''}</span>`;
+      }).join('');
+    }
+    setInterval(renderAgents, 5000); // grise sans attendre un nouveau state
+
     // --- état / zones ---
     socket.on('state', (st) => {
       agents = st.agents;
+      renderAgents();
       $('#zones').innerHTML = st.zones.map((z) => {
         const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
         const d = density.get(z.id);
