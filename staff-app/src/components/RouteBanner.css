@@ -1,0 +1,62 @@
+.route-banner {
+  background: var(--color-red-soft);
+  border: 1px solid var(--color-red);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.route-banner__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-banner__target {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-red);
+}
+
+.route-banner__eta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.route-banner__path {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.route-banner__arrived,
+.route-banner__ok {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid var(--color-red);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-red);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.route-banner--here {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.route-banner__text {
+  font-size: 13px;
+  color: var(--color-text);
+}
