@@ -341,8 +341,23 @@
     }
     window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); switchView('radio'); };
 
-    socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
+    socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); sendHeartbeat(); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
+
+    // --- preuve de vie (heartbeat, event additif hors Contrat A) ---
+    // Toutes les 10 s : le coordinateur ne propose que des agents dont le téléphone
+    // répond encore. Batterie via getBattery (absent sur iOS/desktop -> null).
+    let batteryLevel = null;
+    if (navigator.getBattery) navigator.getBattery().then(b => {
+      const upd = () => { batteryLevel = Math.round(b.level * 100); };
+      upd(); b.addEventListener('levelchange', upd);
+    }).catch(() => {});
+    function sendHeartbeat() {
+      if (!socket.connected) return;
+      const zoneId = lastState?.agents?.find(a => a.id === me)?.current_zone || null;
+      socket.emit('heartbeat', { agentId: me, zoneId, battery: batteryLevel, ts: Date.now() });
+    }
+    setInterval(sendHeartbeat, 10000);
 
     // --- state / zones ---
     socket.on('state', (st) => {
@@ -363,7 +378,7 @@
       feed(`📡 Capteur BLE · ${p.zoneId} : ${p.deviceCount} appareils${p.ratio ? ` (×${p.ratio} vs normale)` : ''}`, hot ? 'warn' : '');
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">Aucun dispatch pour l\'instant.</p>'; };
+    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); sendHeartbeat(); $('#dispatches').innerHTML='<p class="empty">Aucun dispatch pour l\'instant.</p>'; };
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
