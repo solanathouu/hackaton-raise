@@ -106,3 +106,20 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
   .hud-feed { width: 250px; }
   .brand-sub { display: none; }
 }
+
+/* --- onglets de surface (3D <-> Caméra) ------------------------------------- */
+#hud a { pointer-events: auto; }
+.surface-tabs {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 26px rgba(0,0,0,.35);
+}
+.surface-tabs .tab {
+  font: 700 11.5px/1 -apple-system, system-ui, sans-serif; letter-spacing: 1px;
+  color: var(--dim); text-decoration: none; padding: 8px 16px; border-radius: 9px;
+  transition: color .2s;
+}
+.surface-tabs .tab:hover { color: var(--txt); }
+.surface-tabs .tab.on { color: var(--accent); background: #0c2030; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }

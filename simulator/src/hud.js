@@ -19,6 +19,11 @@ export function createHud(root, { mode }) {
       <span class="brand-sub">${mode === "demo" ? "simulation locale scriptée · cerveau embarqué" : "vue live du cerveau · dispatch temps réel"}</span>
     </header>
 
+    <nav class="surface-tabs">
+      <span class="tab on">3D</span>
+      <a class="tab" href="/crowd/">Caméra</a>
+    </nav>
+
     <section class="hud-feed" id="hudFeed" aria-live="polite"></section>
 
     <footer class="hud-bottom">

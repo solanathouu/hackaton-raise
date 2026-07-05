@@ -405,3 +405,17 @@ button#analyzeButton { color: #06121c; }
 .upload-panel, .result-panel, .evidence, .preview-wrap {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 26px rgba(0,0,0,.3);
 }
+
+/* onglets de surface (3D <-> Caméra), même composant que le HUD 3D */
+.surface-tabs {
+  display: flex; gap: 2px; padding: 3px; margin-left: auto; margin-right: 14px;
+  background: #11151c; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+.surface-tabs .tab {
+  font: 700 11.5px/1 -apple-system, system-ui, sans-serif; letter-spacing: 1px;
+  color: var(--muted); text-decoration: none; padding: 8px 16px; border-radius: 9px;
+  transition: color .2s;
+}
+.surface-tabs .tab:hover { color: var(--text); }
+.surface-tabs .tab.on { color: var(--green); background: #0c2030; }
