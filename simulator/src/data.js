@@ -9,17 +9,15 @@ export const zoneSeed = [
   { id: "Z5", name: "Central Plaza", short: "Plaza", requiredMin: 2, requiredSkills: [], pos: [0, 0, 0], color: "#facc15", adjacency: [{ z: "Z1", t: 60 }, { z: "Z2", t: 90 }, { z: "Z3", t: 75 }, { z: "Z6", t: 80 }, { z: "Z7", t: 50 }, { z: "Z9", t: 55 }] },
   { id: "Z6", name: "Kids Zone", short: "Kids", requiredMin: 2, requiredSkills: [], pos: [11, 0, 8], color: "#fb7185", adjacency: [{ z: "Z5", t: 80 }, { z: "Z7", t: 65 }] },
   { id: "Z7", name: "Food Court", short: "Food", requiredMin: 1, requiredSkills: [], pos: [2, 0, 12], color: "#fdba74", adjacency: [{ z: "Z5", t: 50 }, { z: "Z6", t: 65 }, { z: "Z9", t: 40 }] },
-  { id: "Z8", name: "Extreme Ride", short: "Extreme", requiredMin: 2, requiredSkills: ["RCP"], pos: [16, 0, -2], color: "#c084fc", adjacency: [{ z: "Z2", t: 60 }, { z: "Z4", t: 70 }] },
+  { id: "Z8", name: "Extreme Ride", short: "Extreme", requiredMin: 1, requiredSkills: ["RCP"], pos: [16, 0, -2], color: "#c084fc", adjacency: [{ z: "Z2", t: 60 }, { z: "Z4", t: 70 }] },
   { id: "Z9", name: "Shops", short: "Shops", requiredMin: 0, requiredSkills: [], pos: [-6, 0, 14], color: "#a3e635", adjacency: [{ z: "Z5", t: 55 }, { z: "Z7", t: 40 }] },
   { id: "Z10", name: "Parking", short: "Parking", requiredMin: 0, requiredSkills: [], pos: [-23, 0, 15], color: "#94a3b8", adjacency: [{ z: "Z1", t: 70 }] }
 ];
 
 export const agentSeed = [
-  { id: "IBRA", name: "Ibra", skills: ["RCP", "medic"], languages: ["fr", "en"], currentZone: "Z8", homeZone: "Z8", isReserve: false },
-  { id: "NATHAN", name: "Nathan", skills: ["RCP", "DAE"], languages: ["fr", "en"], currentZone: "Z8", homeZone: "Z8", isReserve: false },
-  { id: "PRAKASH", name: "Prakash", skills: ["RCP", "DAE", "medic"], languages: ["fr", "en"], currentZone: "Z2", homeZone: null, isReserve: true },
-  { id: "ALI", name: "Ali", skills: ["RCP", "secu"], languages: ["fr", "en", "es"], currentZone: "Z5", homeZone: "Z5", isReserve: false },
-  { id: "BASTEN", name: "Basten", skills: ["secu", "first-aid"], languages: ["fr", "en"], currentZone: "Z5", homeZone: "Z5", isReserve: false }
+  { id: "BASTEN", name: "Basten", skills: ["RCP", "first-aid"], languages: ["en"], currentZone: "Z8", homeZone: "Z8", isReserve: false },
+  { id: "NATHAN", name: "Nathan", skills: ["RCP", "DAE"], languages: ["en"], currentZone: "Z5", homeZone: "Z5", isReserve: false },
+  { id: "ALI", name: "Ali", skills: ["RCP", "medic"], languages: ["en"], currentZone: "Z5", homeZone: "Z5", isReserve: false }
 ];
 
 // Transcripts alignés sur les scénarios réels S1-S4 du coordinateur (mêmes phrases) pour que le
