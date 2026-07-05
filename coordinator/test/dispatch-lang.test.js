@@ -24,6 +24,13 @@ test('dispatchText falls back to the agent language when incident has none', () 
   assert.match(text, /Arrêt cardiaque/);
 });
 
+test('dispatchText normalizes free-text LLM incident types (« arrêt cardiaque »)', () => {
+  // Nemotron renvoie parfois le type en texte libre au lieu de la clé arret_cardiaque.
+  const incident = { id: 'I4', language: 'en', type: 'arrêt cardiaque', primary_id: 'W1' };
+  const { text } = dispatchText(primary, incident, state);
+  assert.match(text, /^Cardiac arrest at /);
+});
+
 test('dispatchText witness message follows the incident language too', () => {
   const incident = { id: 'I3', language: 'es', type: 'malaise', primary_id: 'W1' };
   const { text, lang } = dispatchText(witness, incident, state);
