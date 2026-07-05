@@ -1,0 +1,89 @@
+.main-screen {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'header'
+    'map'
+    'route'
+    'bottom';
+  height: 100%;
+  background: var(--color-bg);
+}
+
+.main-screen__header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.main-screen__agent {
+  background: var(--color-panel);
+  color: var(--color-text);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.main-screen__change {
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.main-screen__map {
+  grid-area: map;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px;
+}
+
+.main-screen__route {
+  grid-area: route;
+  padding: 8px 16px 0;
+}
+
+.main-screen__bottom {
+  grid-area: bottom;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+  min-height: 0;
+}
+
+.main-screen__ptt {
+  display: flex;
+  justify-content: center;
+}
+
+/* Téléphone à l'horizontale (paysage) : la carte reste large à gauche plutôt
+   que d'être écrasée par un empilement vertical trop haut pour l'écran. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .main-screen {
+    grid-template-columns: minmax(0, 1.3fr) minmax(220px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'map header'
+      'map route'
+      'map bottom';
+  }
+
+  .main-screen__bottom {
+    overflow-y: auto;
+    border-top: none;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .main-screen__header {
+    border-bottom: none;
+    border-left: 1px solid var(--color-border);
+  }
+}
