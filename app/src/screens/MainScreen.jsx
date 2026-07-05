@@ -96,7 +96,7 @@ export function MainScreen({ agent, socket, onChangeAgent }) {
       </header>
 
       <div className="main-screen__map">
-        <ParkMap zoneStates={zoneStates} activeZoneIds={activeZoneIds} route={route?.path} />
+        <ParkMap zoneStates={zoneStates} activeZoneIds={activeZoneIds} route={route?.path} agentZoneId={agentZone} />
       </div>
 
       {route && (

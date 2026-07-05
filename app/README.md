@@ -49,9 +49,17 @@ VITE_COORDINATOR_URL=https://<ip-coordinateur>:3000
 
 - **Carte custom SVG plutôt que Leaflet** : le seed dataset ne fournit pas de
   vraies coordonnées GPS, juste un graphe de zones avec adjacence/temps de
-  trajet. Leaflet (tuiles, projection géo) serait surdimensionné pour un plan
-  de parc stylisé statique — une carte SVG légère fait le même travail avec
-  moins de dépendances.
+  trajet. Leaflet (tuiles, projection géo) serait surdimensionné — une carte
+  SVG légère fait le même travail avec moins de dépendances. Elle est
+  interactive façon Google Maps/Waze : pan avec inertie, pinch/molette/
+  double-tap pour zoomer, boutons +/−, recentrage sur sa position (pastille
+  « MOI »), libellés de zones progressifs au zoom, itinéraire animé qui suit
+  les allées avec épingle de destination et cadrage automatique après un
+  accusé de réception. Le fond de plan (`mapDecor.jsx`) dessine un terrain
+  stylisé (pelouses, rivière, allées, bâtiments) en teintes désaturées —
+  écart assumé avec la règle « deux couleurs » de la charte : ces teintes
+  n'encodent aucun état, uniquement le décor, et restent sous les accents
+  fonctionnels rouge/vert.
 - **Couleur des zones sur la carte** : `conductor-P4-contexte.md` (§11)
   suggérait vert/orange/rouge par statut de couverture, mais
   `conductor-charte-graphique.md` (plus récent) fixe une règle stricte à deux
