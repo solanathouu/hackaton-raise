@@ -541,7 +541,7 @@
         strip.classList.remove('on');
         strip.innerHTML = '';
         who.style.display = '';
-        who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}</option>`).join('');
+        who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve ? ' (R)' : ''}</option>`).join('');
       }
       if (!opts.some((a) => a.id === me)) {
         me = demoMode ? 'W1' : (localStorage.getItem('me') || 'A7');
