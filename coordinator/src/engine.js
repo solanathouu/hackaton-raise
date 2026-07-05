@@ -241,7 +241,7 @@ function coverageWarning(sim, zoneId) {
   return {
     zoneId,
     etaSec,
-    message: `${z?.name || zoneId} tombera sous le minimum ~${mins} min. Accepter / réassigner ?`,
+    message: `${z?.name || zoneId} will fall below minimum in ~${mins} min. Accept / reassign?`,
   };
 }
 
@@ -319,7 +319,7 @@ export function applyDecision(decision, state, opts = {}) {
   if (!primary) {
     return {
       assignments: [],
-      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `Aucun répondant qualifié disponible pour ${incidentZone}.` }],
+      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `No qualified responder available for ${incidentZone}.` }],
       nextState: state,
       incident: buildIncident(decision, incidentId, null, [], warnings, opts, mergedConstraints),
       repaired: true,
@@ -455,7 +455,7 @@ export function deterministicDecide(snapshot, transcript = '') {
     primary_id: primary?.id || null,
     backfills: [], // applyDecision cascade le backfill déterministiquement
     warning: null,
-    justification: 'Dispatch déterministe : plus proche qualifié + backfill surplus-aware (couverture garantie).',
+    justification: 'Deterministic dispatch: closest qualified responder + surplus-aware backfill (coverage guaranteed).',
     constraints_applied: [],
     _degraded: true,
   };

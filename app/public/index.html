@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
@@ -179,6 +179,17 @@
       letter-spacing:2px; padding:15px 0 13px;
     }
     nav button.on { color:var(--accent); border-top-color:var(--accent); }
+
+    /* ---- guidance banner (proactive reposition) ---- */
+    .guidance { display:none; padding:10px 16px; background:#0c2030; border-bottom:1px solid #1d4a63; font-size:14px; }
+    .guidance.on { display:block; }
+    .guidance b { color:var(--accent); }
+    .gps-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+    .gps-row button { font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:10px 12px; }
+    .gps-row button.live { background:#0c2030; border-color:var(--accent); color:var(--accent); }
+    #posStatus { font-size:11px; color:var(--dim); flex:1; min-width:140px; }
+    .feed .pos { color:var(--accent); }
+    .feed .guide { color:#79c0ff; }
   </style>
 </head>
 <body>
@@ -189,23 +200,32 @@
     <span style="flex:1"></span>
     <select id="who"></select>
   </header>
+  <div class="guidance" id="guidance"></div>
 
   <main>
     <!-- ============ VUE RADIO (défaut, le talkie) ============ -->
     <section class="view on" id="view-radio">
       <div class="ptt-stage">
         <div class="ptt-shell">
-          <button class="ptt" id="ptt"><span class="k">PARLER</span><span class="s">maintenir</span></button>
+          <button class="ptt" id="ptt"><span class="k">SPEAK</span><span class="s">hold</span></button>
         </div>
-        <p class="ptt-hint">Décris l'urgence. Le dispatch revient ici, sur le bon téléphone.</p>
+        <p class="ptt-hint">Describe the emergency. Dispatch instructions appear here on the right phone.</p>
       </div>
-      <div id="dispatches"><p class="empty">Aucun dispatch pour l'instant.</p></div>
+      <div id="dispatches"><p class="empty">No dispatches yet.</p></div>
     </section>
 
     <!-- ============ VUE CARTE ============ -->
     <section class="view" id="view-map">
       <div class="card">
-        <h2>Carte du site</h2>
+        <h2>My position</h2>
+        <div class="gps-row">
+          <button id="gpsBtn">📍 One-shot GPS</button>
+          <button id="gpsLiveBtn">▶ Live GPS</button>
+          <span id="posStatus">Seed zone · tap map or GPS to update</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Site map</h2>
         <div class="mapwrap">
           <svg id="map" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet">
             <g id="mapg">
@@ -217,10 +237,10 @@
           </svg>
         </div>
         <div class="routebanner" id="routebanner"></div>
-        <p class="hint">Tu es : <b id="myzone">…</b>. Tape une zone pour t'y positionner. Après « je m'en occupe », ton itinéraire s'affiche ici.</p>
+        <p class="hint">You are in: <b id="myzone">…</b>. Tap a zone to set your position. After "On my way", your route appears here.</p>
       </div>
       <div class="card">
-        <h2>Couverture des zones</h2>
+        <h2>Zone coverage</h2>
         <div class="zones" id="zones"></div>
       </div>
     </section>
@@ -228,24 +248,26 @@
     <!-- ============ VUE PLUS (journal, démo, réglages) ============ -->
     <section class="view" id="view-more">
       <div class="card">
-        <h2>Langue du signalement</h2>
+        <h2>Report language</h2>
         <div class="lang">
-          <button data-lang="fr" class="sel">FR</button><button data-lang="es">ES</button>
+          <button data-lang="fr" class="sel">FR</button><button data-lang="en">EN</button><button data-lang="es">ES</button>
         </div>
       </div>
       <div class="card demo">
-        <h2>Démo sans micro</h2>
+        <h2>Demo without mic</h2>
         <div class="row">
           <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1 · surplus Z2</button>
           <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2 · cascade Z8</button>
           <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
-          <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · réserviste ES</button>
-          <button id="f8">F8 · protège Marco</button>
+          <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · reserve ES</button>
+          <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en">S5 · cardiac EN</button>
+          <button id="f8">F8 · protect Marco</button>
+          <button id="scanRepo">Scan reposition</button>
           <button id="reset">Reset</button>
         </div>
       </div>
       <div class="card">
-        <h2>Journal</h2>
+        <h2>Log</h2>
         <div class="feed" id="feed"></div>
       </div>
     </section>
@@ -253,8 +275,8 @@
 
   <nav>
     <button class="on" data-view="radio">RADIO</button>
-    <button data-view="map">CARTE</button>
-    <button data-view="more">PLUS</button>
+    <button data-view="map">MAP</button>
+    <button data-view="more">MORE</button>
   </nav>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -269,6 +291,25 @@
     let lastState = null;
     const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
+
+    function showGuidance(g) {
+      const el = $('#guidance');
+      if (!g?.message) { el.classList.remove('on'); return; }
+      el.innerHTML = `<b>↗ Reposition</b> · ${g.message}` +
+        (g.targetZone ? ` <button style="margin-left:8px;font-size:12px;padding:6px 10px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--txt)" onclick="goZone('${g.targetZone}')">Go ${g.targetZone}</button>` : '');
+      el.classList.add('on');
+      if (navigator.vibrate) navigator.vibrate(80);
+    }
+    window.goZone = (zoneId) => { socket.emit('position', { agentId: me, zoneId }); feed(`📍 Position: ${zoneId}`, 'pos'); };
+
+    function updatePosStatus(st) {
+      const mine = st?.agents?.find(a => a.id === me);
+      if (!mine) return;
+      const zn = st.zones.find(z => z.id === mine.current_zone)?.name || mine.current_zone;
+      const when = mine.position_at ? new Date(mine.position_at).toLocaleTimeString('en') : 'seed';
+      const gps = mine.lat != null ? ` · GPS ${mine.lat.toFixed(5)},${mine.lon.toFixed(5)}` : '';
+      $('#posStatus').textContent = `${mine.current_zone} · ${zn} · updated ${when}${gps}`;
+    }
 
     // --- navigation 3 vues (radio / carte / plus) ---
     function switchView(name) {
@@ -336,10 +377,10 @@
       const r = shortestRoute(meA.current_zone, target); if (!r) return;
       $('#routeg').innerHTML = `<polyline class="route" points="${r.path.map(z => ZONES_XY[z] ? ZONES_XY[z].join(',') : '').filter(Boolean).join(' ')}"/>`;
       const names = r.path.map(z => st.zones.find(x => x.id === z)?.name || z).join(' → ');
-      $('#routebanner').innerHTML = `<div style="font-weight:600">Itinéraire vers ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:5px 0 9px">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrivé sur zone</button>`;
+      $('#routebanner').innerHTML = `<div style="font-weight:600">Route to ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:5px 0 9px">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrived on site</button>`;
       $('#routebanner').classList.add('on');
     }
-    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); switchView('radio'); };
+    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrived: ${target}`); switchView('radio'); };
 
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
@@ -354,16 +395,69 @@
       }
       renderZones(st);
       renderMap(st);
+      updatePosStatus(st);
     });
+
+    socket.on('guidance', (g) => { if (g.agentId === me) showGuidance(g); });
+    socket.on('error_msg', (e) => alert(e.message || 'Error'));
+    socket.on('position_log', (p) => {
+      const extra = p.lat != null ? ` (${p.lat.toFixed(5)},${p.lon.toFixed(5)} ±${p.accuracy ?? '?'}m)` : '';
+      feed(`📍 ${p.agentId} → ${p.zoneId}${extra} [${p.source}]`, 'pos');
+    });
+    socket.on('guidance_log', (g) => {
+      const who = g.agentId ? g.agentId : 'scan';
+      feed(`↗ guidance ${who}: ${g.message || g.targetZone || ''}`, 'guide');
+    });
+
+    let gpsWatch = null;
+    let lastGpsAt = 0;
+    let lastGpsLat = null;
+    let lastGpsLon = null;
+    function sendGps(pos) {
+      const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+      const now = Date.now();
+      const moved = lastGpsLat == null ? 1 : Math.abs(lat - lastGpsLat) + Math.abs(lon - lastGpsLon);
+      if (lastGpsLat != null && now - lastGpsAt < 10000 && moved < 0.00005) return;
+      lastGpsAt = now; lastGpsLat = lat; lastGpsLon = lon;
+      socket.emit('gps_position', { agentId: me, lat, lon, accuracy });
+    }
+    $('#gpsBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS unavailable in this browser.');
+      $('#gpsBtn').textContent = '… locating';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { sendGps(pos); $('#gpsBtn').textContent = '📍 One-shot GPS'; },
+        (err) => { alert('GPS: ' + err.message); $('#gpsBtn').textContent = '📍 One-shot GPS'; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+      );
+    };
+    $('#gpsLiveBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS unavailable in this browser.');
+      const btn = $('#gpsLiveBtn');
+      if (gpsWatch != null) {
+        navigator.geolocation.clearWatch(gpsWatch);
+        gpsWatch = null;
+        btn.textContent = '▶ Live GPS';
+        btn.classList.remove('live');
+        return;
+      }
+      btn.textContent = '⏹ Stop GPS';
+      btn.classList.add('live');
+      gpsWatch = navigator.geolocation.watchPosition(
+        (pos) => sendGps(pos),
+        (err) => alert('Live GPS: ' + err.message),
+        { enableHighAccuracy: true, maximumAge: 8000, timeout: 15000 },
+      );
+      navigator.geolocation.getCurrentPosition((pos) => sendGps(pos), () => {}, { enableHighAccuracy: true, timeout: 10000 });
+    };
 
     socket.on('crowd_density', (p) => {
       crowdByZone[p.zoneId] = p;
       if (lastState) renderZones(lastState);
       const hot = p.ratio && p.ratio >= 1.5;
-      feed(`📡 Capteur BLE · ${p.zoneId} : ${p.deviceCount} appareils${p.ratio ? ` (×${p.ratio} vs normale)` : ''}`, hot ? 'warn' : '');
+      feed(`📡 BLE sensor · ${p.zoneId}: ${p.deviceCount} devices${p.ratio ? ` (×${p.ratio} vs baseline)` : ''}`, hot ? 'warn' : '');
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">Aucun dispatch pour l\'instant.</p>'; };
+    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">No dispatches yet.</p>'; $('#guidance').classList.remove('on'); };
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
@@ -378,8 +472,8 @@
       el.dataset.inc = d.incidentId; el.dataset.role = d.role;
       el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${d.lang}</span></div>
         <div class="t">${d.text}</div>
-        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">Je m'en occupe</button>
-        ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Réécouter</button>`:''}</div>`;
+        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">On my way</button>
+        ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Replay</button>`:''}</div>`;
       const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML='';
       box.prepend(el);
       if (d.audioUrl) playAudio(d.audioUrl);
@@ -393,7 +487,7 @@
     const feed = (html, cls='') => { const d=document.createElement('div'); d.className=cls; d.innerHTML=html; $('#feed').prepend(d); };
     const mode = $('#mode');
     function setMode(i) {
-      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
+      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'DEGRADED MODE'; mode.style.display = ''; }
       else if (i.source && i.source.startsWith('crusoe')) {
         mode.className = 'badge live';
         // label court : « Deepseek V4 » (le nom complet tronquait mi-mot sur mobile)
@@ -405,7 +499,7 @@
     // Écrasé par setMode() à l'arrivée de l'incident ; garde-fou 20 s si rien n'arrive.
     let analyseTimer = null;
     function analysing() {
-      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyse…'; mode.style.display = '';
+      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyzing…'; mode.style.display = '';
       clearTimeout(analyseTimer); analyseTimer = setTimeout(() => { mode.style.display = 'none'; }, 20000);
     }
     let lastIncidentId = null;
@@ -413,12 +507,12 @@
       clearTimeout(analyseTimer);
       lastIncidentId = i.id;
       setMode(i);
-      feed(`<b>${i.type||'incident'}</b> · ${i.zone_id} · sévérité ${i.severity??'?'} → primary <b>${i.primary_id}</b>`);
+      feed(`<b>${i.type||'incident'}</b> · ${i.zone_id} · severity ${i.severity??'?'} → primary <b>${i.primary_id}</b>`);
       if (i.justification) feed(i.justification, 'just');
-      if (i.constraints_applied?.length) feed(`🔒 contrainte respectée : ${i.constraints_applied.join(' · ')}`, 'cstr');
+      if (i.constraints_applied?.length) feed(`🔒 constraint applied: ${i.constraints_applied.join(' · ')}`, 'cstr');
     });
     socket.on('coverage_warning', (w) => feed(`⚠ ${w.message}`, 'warn'));
-    socket.on('ack_log', (a) => feed(`✅ ${a.agentId} a accusé ${a.assignmentId}`));
+    socket.on('ack_log', (a) => feed(`✅ ${a.agentId} acknowledged ${a.assignmentId}`));
     socket.on('override_log', (o) => feed(`✋ override → ${o.newAgentId}${o.reason?` (${o.reason})`:''}`));
 
     // --- PTT micro ---
@@ -436,10 +530,10 @@
           analysing();
           stream.getTracks().forEach(t => t.stop());
         };
-        rec.start(); $('#ptt').classList.add('rec'); pttLabel('À TOI', 'relâche pour envoyer');
-      } catch (e) { alert('Micro bloqué : ' + e.message + '\nActive HTTPS (npm run certs) ou utilise les boutons démo (vue PLUS).'); }
+        rec.start(); $('#ptt').classList.add('rec'); pttLabel('YOUR TURN', 'release to send');
+      } catch (e) { alert('Microphone blocked: ' + e.message + '\nEnable HTTPS (npm run certs) or use the demo buttons (MORE view).'); }
     }
-    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('PARLER', 'maintenir'); }
+    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('SPEAK', 'hold'); }
     const ptt = $('#ptt');
     ptt.addEventListener('mousedown', startRec); ptt.addEventListener('mouseup', stopRec);
     ptt.addEventListener('touchstart', (e)=>{e.preventDefault();startRec();}); ptt.addEventListener('touchend', (e)=>{e.preventDefault();stopRec();});
@@ -447,11 +541,12 @@
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); switchView('radio'); });
     $('#f8').onclick = () => {
-      if (!lastIncidentId) return alert('Déclenche d\'abord un incident (ex : S2).');
-      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protège Marco' });
-      feed('✋ override : « protège Marco » → contrainte apprise. Relance S2 : le moteur ne ponctionnera plus Marco.', 'cstr');
+      if (!lastIncidentId) return alert('Trigger an incident first (e.g. S2).');
+      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protect Marco' });
+      feed('✋ override: "protect Marco" → constraint learned. Re-run S2: the engine will no longer pull Marco.', 'cstr');
     };
-    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; };
+    $('#scanRepo').onclick = () => { socket.emit('scan_reposition'); feed('↗ Reposition scan requested', 'guide'); };
+    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on'); };
   </script>
 </body>
 </html>

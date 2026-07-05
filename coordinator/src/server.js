@@ -18,6 +18,8 @@ import { handleIncident } from './agent.js';
 import { createStore } from './persistence.js';
 import { prewarmCrusoe } from './integrations/crusoe.js';
 import { speak } from './integrations/gradium.js';
+import { computeRepositionHints, hintForAgentId, resolveGpsZone } from './guidance.js';
+import { logPosition } from './position-log.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -64,6 +66,17 @@ app.get('/health', (_req, res) => {
 });
 app.get('/api/state', (_req, res) => res.json(serializeState(state)));
 app.get('/api/incidents', (req, res) => res.json({ incidents: store.listIncidents(Number(req.query.limit) || 50) }));
+app.get('/api/position-logs', (_req, res) => {
+  const limit = Math.min(Number(_req.query.limit) || 50, 200);
+  const path = resolve(ROOT, config.gps.logPath);
+  if (!existsSync(path)) return res.json([]);
+  try {
+    const lines = readFileSync(path, 'utf8').trim().split('\n').filter(Boolean);
+    res.json(lines.slice(-limit).map((l) => JSON.parse(l)).reverse());
+  } catch {
+    res.json([]);
+  }
+});
 
 // API REST de démo (répétitions au curl, sans micro) — miroir des events WS.
 app.post('/api/demo/sim_incident', async (req, res) => {
@@ -93,6 +106,39 @@ function createHttpServer(expressApp) {
 }
 
 const broadcastState = () => io.emit('state', serializeState(state));
+
+function emitGuidance(hint) {
+  if (!hint) return;
+  io.to(`agent:${hint.agentId}`).emit('guidance', hint);
+  io.emit('guidance_log', hint);
+}
+
+function emitRepositionGuidance(agentId = null) {
+  if (agentId) {
+    emitGuidance(hintForAgentId(state, agentId));
+    return;
+  }
+  for (const h of computeRepositionHints(state)) emitGuidance(h);
+}
+
+function applyPositionUpdate(agentId, zoneId, meta = {}) {
+  if (!setPosition(state, agentId, zoneId, meta)) return false;
+  broadcastState();
+  emitRepositionGuidance(agentId);
+  const payload = {
+    agentId,
+    zoneId,
+    lat: meta.lat ?? null,
+    lon: meta.lon ?? null,
+    accuracy: meta.accuracy ?? null,
+    distanceM: meta.distanceM ?? null,
+    source: meta.source || 'manual',
+    at: Date.now(),
+  };
+  logPosition(payload);
+  io.emit('position_log', payload);
+  return true;
+}
 
 // --- Dispatchs en attente (replay à la reconnexion, F9 résilience réseau) ---
 function trackPending(d) {
@@ -131,7 +177,7 @@ function onAckTimeout(dispatch) {
   const rc = ctx?.rerouteCount || new Map();
   const count = (rc.get(dispatch.role + dispatch.targetZone) || 0) + 1;
   if (!ctx || count > 2) {
-    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `Aucun accusé pour ${dispatch.targetZone} après re-routes. Intervention opérateur requise.` });
+    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No ack for ${dispatch.targetZone} after re-routes. Operator intervention required.` });
     return;
   }
   rc.set(dispatch.role + dispatch.targetZone, count);
@@ -144,7 +190,7 @@ function onAckTimeout(dispatch) {
       ? candidatesPrimary(state, ctx.zoneId, ctx.skills).find((c) => !excl.includes(c.id))
       : candidatesBackfill(state, dispatch.targetZone, excl)[0];
   if (!next) {
-    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `Plus de candidat pour ${dispatch.targetZone}.` });
+    io.emit('coverage_warning', { zoneId: dispatch.targetZone, etaSec: 0, message: `No candidate left for ${dispatch.targetZone}.` });
     return;
   }
   ctx.used.add(next.id);
@@ -179,6 +225,7 @@ async function runIncident({ audio, transcript, langHint }) {
   io.emit('incident', res.incident); // console opérateur : feed + justification
   for (const d of res.dispatches) emitDispatch(d);
   for (const w of res.warnings) io.emit('coverage_warning', w);
+  emitRepositionGuidance();
   const nWitness = res.dispatches.filter((d) => d.role === 'witness').length;
   console.log(`[incident ${incidentId}] "${res.incident.transcript}" -> primary ${res.incident.primary_id}` +
     `, ${res.dispatches.filter((d) => d.role === 'backfill').length} backfill, ${nWitness} témoin(s), ${res.warnings.length} warning` +
@@ -196,8 +243,11 @@ function ackAssignment(assignmentId) {
   clearPending(as.agent_id, assignmentId);
   store.setAssignmentStatus(assignmentId, 'ack');
   store.logEvent('ack', { assignmentId, agentId: as.agent_id });
-  if (as.role === 'backfill') { setPosition(state, as.agent_id, as.target_zone); setStatus(state, as.agent_id, 'available'); }
-  else setStatus(state, as.agent_id, 'responding');
+  if (as.role === 'backfill') {
+    applyPositionUpdate(as.agent_id, as.target_zone, { source: 'ack' });
+    setStatus(state, as.agent_id, 'available');
+    broadcastState();
+  } else setStatus(state, as.agent_id, 'responding');
   broadcastState();
   io.emit('ack_log', { assignmentId, agentId: as.agent_id });
   return true;
@@ -215,7 +265,7 @@ function applyOverride({ incidentId, newAgentId, reason }) {
     state.assignments.push(as);
     store.logAssignment(as);
     broadcastState();
-    emitDispatch({ assignmentId: as.id, incidentId, role: 'primary', targetZone: inc.zone_id, agentId: newAgentId, text: `Override opérateur : ${zoneName}. Vas-y.`, audioUrl: null, lang: 'fr' });
+    emitDispatch({ assignmentId: as.id, incidentId, role: 'primary', targetZone: inc.zone_id, agentId: newAgentId, text: `Operator override: ${zoneName}. Go now.`, audioUrl: null, lang: 'fr' });
   }
   store.logEvent('override', { incidentId, newAgentId, reason });
   io.emit('override_log', { incidentId, newAgentId, reason });
@@ -233,7 +283,7 @@ async function dispatchAgentToZone({ agentId, zoneId, reason, textOverride }) {
   broadcastState();
   const zoneName = zoneById(state, zoneId)?.name || zoneId;
   const lang = agent.languages?.[0] || 'fr';
-  const text = textOverride || `Renfort demandé : rejoins ${zoneName} pour maintenir la couverture.`;
+  const text = textOverride || `Reinforcement requested: proceed to ${zoneName} to maintain coverage.`;
   let audioUrl = null;
   try { audioUrl = (await speak(text, lang, { id: as.id })).audioUrl; } catch (e) { console.warn(`[operator] TTS KO ${e.message}`); }
   emitDispatch({ assignmentId: as.id, incidentId: null, role: 'backfill', targetZone: zoneId, agentId, text, audioUrl, lang });
@@ -260,6 +310,7 @@ function scenarioPayload(name = 'S2') {
     S2: { transcript: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' },
     S3: { transcript: 'malaise à la zone enfants, personne inconsciente', lang: 'fr' },
     S4: { transcript: 'un hombre se desplomó en la entrada, no respira', lang: 'es' },
+    S5: { transcript: 'a man collapsed at the entrance, he is not breathing', lang: 'en' },
   };
   return S[String(name || 'S2').toUpperCase()] || S.S2;
 }
@@ -286,10 +337,38 @@ io.on('connection', (socket) => {
   });
 
   socket.on('position', ({ agentId, zoneId }) => {
-    if (setPosition(state, agentId, zoneId)) broadcastState();
+    applyPositionUpdate(agentId, zoneId, { source: 'manual' });
   });
 
-  // Capteur de densité (BLE) — télémétrie ambiante rebroadcastée à tous (carte +
+  socket.on('gps_position', ({ agentId, lat, lon, accuracy }) => {
+    const hit = resolveGpsZone(state.zones, lat, lon, config.gps.maxDistanceM);
+    if (!hit) {
+      logPosition({ agentId, lat, lon, accuracy, source: 'gps_rejected' });
+      socket.emit('error_msg', {
+        message: `GPS outside park (>${config.gps.maxDistanceM} m from nearest zone). Set PARK_LAT/PARK_LON on the server.`,
+      });
+      return;
+    }
+    applyPositionUpdate(agentId, hit.zoneId, {
+      lat,
+      lon,
+      accuracy,
+      distanceM: hit.distanceM,
+      source: 'gps',
+    });
+  });
+
+  socket.on('scan_reposition', () => {
+    const hints = computeRepositionHints(state);
+    emitRepositionGuidance();
+    io.emit('guidance_log', {
+      agentId: null,
+      message: `Reposition scan: ${hints.length} suggestion(s) sent.`,
+      reason: 'scan',
+    });
+  });
+
+  // Capteur de densité (BLE)
   // console op). Si densité anormale (ratio vs baseline) SUR une zone sans marge
   // de couverture -> advisory proactive (même canal que F5, aucun nouveau contrat).
   socket.on('crowd_density', (payload) => {
@@ -307,7 +386,7 @@ io.on('connection', (socket) => {
       io.emit('coverage_warning', {
         zoneId: z.id,
         etaSec: 0,
-        message: `Densité inhabituelle ${z.name} (x${payload.ratio} vs normale, ${payload.deviceCount} appareils) sans marge de couverture. Pré-positionner un renfort ?`,
+        message: `Unusual density at ${z.name} (×${payload.ratio} vs baseline, ${payload.deviceCount} devices) with no coverage margin. Pre-position reinforcement?`,
       });
       console.log(`[density] alerte ${z.id} ratio=${payload.ratio} count=${payload.deviceCount}`);
     }
@@ -315,7 +394,7 @@ io.on('connection', (socket) => {
 
   socket.on('incident_audio', async ({ agentId, audio, ts, lang }) => {
     try { await runIncident({ audio, langHint: lang }); }
-    catch (e) { console.error('[incident_audio] erreur', e); socket.emit('error_msg', { message: 'Traitement incident échoué', detail: String(e.message) }); }
+    catch (e) { console.error('[incident_audio] erreur', e); socket.emit('error_msg', { message: 'Incident processing failed', detail: String(e.message) }); }
   });
 
   socket.on('sim_incident', async ({ transcript, lang }) => {
@@ -361,7 +440,7 @@ server.listen(config.port, '0.0.0.0', () => {
   for (const [name, addrs] of Object.entries(os.networkInterfaces())) {
     for (const a of addrs || []) if (a.family === 'IPv4' && !a.internal) console.log(`   LAN (${name}) : ${proto}://${a.address}:${config.port}`);
   }
-  console.log('   REST: /health /api/state /api/incidents /api/demo/{sim_incident,reset} · WS Socket.io\n');
+  console.log('   REST: /health /api/state /api/incidents /api/position-logs /api/demo/{sim_incident,reset} · WS Socket.io\n');
 });
 
 for (const sig of ['SIGINT', 'SIGTERM']) {
