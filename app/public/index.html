@@ -340,7 +340,7 @@
       <div class="card">
         <h2>Report language</h2>
         <div class="lang">
-          <button data-lang="fr" class="sel">FR</button><button data-lang="en">EN</button><button data-lang="es">ES</button>
+          <button data-lang="fr">FR</button><button data-lang="en" class="sel">EN</button><button data-lang="es">ES</button>
         </div>
       </div>
       <div class="card demo">
@@ -379,7 +379,7 @@
     let demoMode = localStorage.getItem('demoMode') === 'true';
     let rosterSynced = false;
     let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || (demoMode ? 'W1' : 'A7');
-    let lang = 'fr';
+    let lang = 'en';
     let lastState = null;
     let ackTimeoutMs = 15000;
     const ackCountdowns = new Map();
