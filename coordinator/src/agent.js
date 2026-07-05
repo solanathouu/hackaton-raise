@@ -43,7 +43,7 @@ const TEMPLATES = {
   },
 };
 
-function dispatchText(assignment, incident, state) {
+export function dispatchText(assignment, incident, state) {
   const agent = agentById(state, assignment.agent_id);
   const lang = incident.language || agent?.languages?.[0] || 'fr';
   const tpl = TEMPLATES[lang] || TEMPLATES.fr;
