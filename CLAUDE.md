@@ -65,6 +65,21 @@ npm run smoke:crusoe · npm run smoke:gradium · node scripts/smoke-pipeline.js 
 - `camera_crowd_detector` (PR#4 Prakash) = **MERGÉE** le 05/07 puis branchée au cerveau (`/crowd`).
 - `codex/backend`, `3dSimulator`, `conductor-app-p4`, `cursor/realtime-position-guidance` (PR#3) = **NE PAS MERGER**. Leur valeur a été **portée dans main** (SQLite/REST, 3D live, carte, robustesse TTS). Rebrand « Weave » de la PR#3 = **rejeté** (nom acté = CONDUCTOR).
 
+## ⚠ DEBUG EN COURS (2026-07-05 matin) : STT iPhone → « transcription vide »
+Test talkie réel avec 3 iPhones (A10/A6/A7, CA trustée, IP `192.168.8.91`) : **routage/témoins/re-routes
+PARFAITS**, mais le PTT iPhone → Gradium STT répond « transcription vide » → fallback silencieux sur la
+fixture S2 (l'utilisateur croit parler, le système joue le scénario mock). Audio iOS Safari = MP4/AAC,
+`audio.js` le convertit via ffmpeg — le maillon défaillant est inconnu.
+**Sondes posées** (commit) : taille audio reçue (`server.js` incident_audio), format+tailles avant/après
+conversion (`gradium.js`), réponse brute Gradium si vide. Serveur relancé avec sondes.
+**REPRENDRE ICI** : 1) Nathan refait UN appel PTT (2-3 s de parole claire) ; 2) lire
+`grep -E "incident_audio|gradium" <log serveur>` (session précédente :
+`/private/tmp/claude-501/-Users-nathan-Code-hackaton-hackaton-raise/231389a5-2a51-4e5a-9c2f-1d175400adc6/scratchpad/server-diag.log`
+— sinon relancer `npm start` avec un log et refaire le test) ; 3) diagnostiquer : audio ~0 Ko = micro
+Safari n'enregistre pas (MediaRecorder iOS) · audio plein + wav converti + réponse vide = pb Gradium/format ;
+4) fixer, retester, PUIS valider l'animation 3D (`/sim` ouvert pendant un appel).
+Note : `/ca.crt` servi par le coordinateur (gitignoré) = install CA en 1 clic sur les téléphones.
+
 ## Next Immediate Action (100 % humain, ~3 h — tout le guide est dans `docs/repetition-runbook.md`)
 1. **Truster la CA mkcert sur les téléphones** (une fois par tel, procédure §3 du runbook) puis ouvrir
    les liens par profil : `https://<IP-LAN>:3000/index.html?agent=A10` (médic) / `?agent=A6` (sécu) /

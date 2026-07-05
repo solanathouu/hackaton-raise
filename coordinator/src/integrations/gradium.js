@@ -98,7 +98,8 @@ export async function transcribe(audio, { lang, strict = false } = {}) {
 async function gradiumTranscribe(buf, lang) {
   // Sniff par magic bytes : la PWA envoie du webm/opus (MediaRecorder) que
   // Gradium ne prend pas en direct -> conversion ffmpeg en WAV si dispo.
-  const { body, contentType } = await prepareForGradium(buf);
+  const { body, contentType, format } = await prepareForGradium(buf);
+  console.log(`[gradium] STT: reçu ${buf.length} o (sniff entrée), envoyé ${body.length} o en ${contentType} (format ${format})`);
   const qs = new URLSearchParams();
   if (lang) qs.set('json_config', JSON.stringify({ language: lang }));
   const res = await fetchWithTimeout(`${BASE}/post/speech/asr?${qs}`, {
@@ -127,7 +128,10 @@ async function gradiumTranscribe(buf, lang) {
     .replace(/\s+/g, ' ')
     .replace(/\s+([,.!?;:])/g, '$1') // pas d'espace avant la ponctuation
     .trim();
-  if (!text) throw new Error('Gradium STT : transcription vide');
+  if (!text) {
+    console.warn(`[gradium] STT réponse brute (${raw.length} o) : ${raw.slice(0, 300).replace(/\n/g, ' | ')}`);
+    throw new Error('Gradium STT : transcription vide');
+  }
   // Gradium ne renvoie PAS la langue détectée -> hint sinon détection déterministe locale.
   return { text, lang: lang || detectLang(text) };
 }

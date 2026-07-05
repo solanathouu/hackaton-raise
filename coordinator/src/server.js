@@ -314,6 +314,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('incident_audio', async ({ agentId, audio, ts, lang }) => {
+    console.log(`[incident_audio] de ${agentId} : ${audio ? Math.round(audio.length / 1024) : 0} Ko (b64), lang=${lang}`);
     try { await runIncident({ audio, langHint: lang }); }
     catch (e) { console.error('[incident_audio] erreur', e); socket.emit('error_msg', { message: 'Traitement incident échoué', detail: String(e.message) }); }
   });
