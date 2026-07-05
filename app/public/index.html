@@ -31,8 +31,8 @@
 
     /* ---- header ---- */
     header {
-      display:flex; align-items:center; gap:10px; padding:12px 16px;
-      padding-top:calc(12px + env(safe-area-inset-top));
+      display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; padding:10px 16px;
+      padding-top:calc(10px + env(safe-area-inset-top));
       background:linear-gradient(180deg, #131922, var(--panel));
       border-bottom:1px solid var(--line);
       box-shadow:var(--hairline), 0 4px 16px rgba(0,0,0,.25);
@@ -45,7 +45,7 @@
     #who {
       font:600 13px/1 -apple-system, system-ui, sans-serif; color:var(--accent);
       background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
-      padding:10px 12px; max-width:150px; min-height:44px;
+      padding:10px 12px; flex:0 1 150px; min-width:90px; max-width:150px; min-height:44px;
       transition:border-color .2s var(--ease), background .2s var(--ease);
     }
     #who:focus { outline:none; border-color:var(--accent); }
@@ -62,7 +62,7 @@
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
     .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; background:var(--panel2); }
     .roster-toggle button {
-      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:10px 12px; min-height:44px; min-width:44px;
+      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:9px 11px; min-height:44px; min-width:42px;
       border:none; background:transparent; color:var(--dim); letter-spacing:.5px;
       transition:background .2s var(--ease), color .2s var(--ease);
     }
@@ -141,6 +141,7 @@
       border-radius:var(--r); padding:16px 16px 16px 18px; margin-bottom:10px;
       box-shadow:var(--hairline), var(--elev), inset 0 0 0 1px rgba(76,194,255,.04);
       transition:opacity .3s var(--ease), border-color .25s var(--ease);
+      animation:fadein .25s var(--ease);
     }
     .dispatch::before {
       content:'◉'; position:absolute; top:14px; right:14px;
@@ -162,7 +163,7 @@
     .dispatch .tag.primary { background:#33130f; color:var(--bad); }
     .dispatch .tag.backfill { background:#0c2030; color:var(--accent); }
     .dispatch .tag.witness { background:var(--panel2); color:var(--dim); }
-    .dispatch .zone { font:600 12px var(--mono); color:var(--dim); }
+    .dispatch .zone { font:600 11px var(--mono); color:var(--dim); letter-spacing:.5px; text-transform:uppercase; }
     .dispatch .t { font-size:17px; font-weight:600; line-height:1.4; margin-bottom:14px; }
     .dispatch .row { display:flex; gap:8px; }
     .ackbtn {
@@ -180,7 +181,7 @@
       transition:width .25s linear;
       z-index:0;
     }
-    .ackbtn .ack-label { position:relative; z-index:1; }
+    .ackbtn .ack-label { position:relative; z-index:1; font-variant-numeric:tabular-nums; }
     .ackbtn.urgent:not(.expired) .ack-fill {
       background:linear-gradient(180deg, #d94a38, #a83224);
       animation:ackpulse .85s ease-in-out infinite;
@@ -193,7 +194,18 @@
     .ackbtn:active:not(.expired):not(:disabled) { transform:scale(.975); }
     .ackbtn:disabled { pointer-events:none; }
     .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
-    .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 0; }
+    .replay:active { transform:scale(.97); }
+    /* témoin : simple accusé de lecture local (la consigne est « reste en place ») */
+    .gotitbtn {
+      flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--dim);
+      font:600 14px/1 -apple-system, system-ui, sans-serif; padding:14px; border-radius:var(--r);
+      transition:transform .15s var(--ease);
+    }
+    .gotitbtn:active { transform:scale(.975); }
+    .empty {
+      color:var(--dim); font-size:13px; text-align:center; padding:24px 14px;
+      border:1px dashed var(--line); border-radius:var(--r);
+    }
 
     /* ---- vue CARTE ---- */
     .card {
@@ -206,8 +218,9 @@
     .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
     .mapwrap svg:active { cursor:grabbing; }
     .znode { cursor:pointer; }
-    .zlabel { font:700 14px var(--mono); fill:var(--txt); pointer-events:none; }
-    .zsub { font:11px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; }
+    /* halo sombre derrière les labels : lisibles même par-dessus les arêtes du graphe */
+    .zlabel { font:700 14px var(--mono); fill:var(--txt); pointer-events:none; paint-order:stroke; stroke:#0b0e13; stroke-width:4px; stroke-linejoin:round; }
+    .zsub { font:600 12px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; paint-order:stroke; stroke:#0b0e13; stroke-width:4px; stroke-linejoin:round; }
     .adotlabel { font:700 9px var(--mono); fill:#fff; pointer-events:none; }
     .edge { stroke:#1c232e; stroke-width:2; }
     .route { stroke:var(--accent); stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8;
@@ -271,7 +284,7 @@
     .gps-row button.live { background:#0c2030; border-color:var(--accent); color:var(--accent); }
     #posStatus { font-size:11px; color:var(--dim); flex:1; min-width:140px; }
     .feed .pos { color:var(--accent); }
-    .feed .guide { color:#79c0ff; }
+    .feed .guide { color:var(--accent); }
   </style>
 </head>
 <body>
@@ -385,6 +398,8 @@
     const ackCountdowns = new Map();
     const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
+    // Échappe tout texte externe (transcript STT, justification LLM) avant innerHTML.
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
     fetch('/health').then((r) => r.json()).then((h) => {
       if (h.ackTimeoutMs > 0) ackTimeoutMs = h.ackTimeoutMs;
@@ -393,7 +408,7 @@
     function showGuidance(g) {
       const el = $('#guidance');
       if (!g?.message) { el.classList.remove('on'); return; }
-      el.innerHTML = `<span class="guidance-icon">↗</span><div class="guidance-body"><b>Reposition</b> · ${g.message}` +
+      el.innerHTML = `<span class="guidance-icon">↗</span><div class="guidance-body"><b>Reposition</b> · ${esc(g.message)}` +
         (g.targetZone ? `<br><button type="button" class="guidance-go" onclick="goZone('${g.targetZone}')">Go ${g.targetZone}</button>` : '') +
         `</div>`;
       el.classList.add('on');
@@ -468,7 +483,7 @@
     mapSvg.addEventListener('pointermove', (e) => { if (!drag) return; const r = mapSvg.getBoundingClientRect(); const s = 900 / r.width; const dx = (e.clientX - drag.x) * s, dy = (e.clientY - drag.y) * s; if (Math.abs(dx) + Math.abs(dy) > 6) dragged = true; vt.x = drag.vx + dx; vt.y = drag.vy + dy; applyVT(); });
     mapSvg.addEventListener('pointerup', () => { drag = null; });
     // tap zone -> position
-    $('#znodes').addEventListener('click', (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest('.znode'); if (!g) return; socket.emit('position', { agentId: me, zoneId: g.dataset.zone }); feed(`📍 Position : ${g.dataset.zone}`); });
+    $('#znodes').addEventListener('click', (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest('.znode'); if (!g) return; socket.emit('position', { agentId: me, zoneId: g.dataset.zone }); feed(`📍 Position: ${g.dataset.zone}`, 'pos'); });
 
     // itinéraire post-accusé
     function showRoute(target) {
@@ -500,6 +515,7 @@
       me = id;
       localStorage.setItem('me', me);
       socket.emit('hello', { agentId: me });
+      clearAllCountdowns();
       $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
       $('#guidance').classList.remove('on');
       if (lastState) rebuildPicker(lastState);
@@ -540,6 +556,7 @@
       localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
       updateDemoUI();
       socket.emit('reset', { demo: demoMode });
+      clearAllCountdowns();
       $('#feed').innerHTML = '';
       $('#mode').style.display = 'none';
       $('#guidance').classList.remove('on');
@@ -642,6 +659,10 @@
       if (!t) return;
       clearInterval(t.interval);
       ackCountdowns.delete(assignmentId);
+    }
+    function clearAllCountdowns() {
+      for (const t of ackCountdowns.values()) clearInterval(t.interval);
+      ackCountdowns.clear();
     }
 
     function ackBtnHtml(assignmentId, targetZone, label) {
