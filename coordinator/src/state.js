@@ -21,6 +21,7 @@ export function serializeState(state) {
     agents: state.agents.map((a) => ({
       id: a.id,
       name: a.name,
+      role: a.role ?? null,
       skills: a.skills,
       languages: a.languages,
       current_zone: a.current_zone,

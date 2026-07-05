@@ -283,7 +283,7 @@ function applyOverride({ incidentId, newAgentId, reason }) {
     state.assignments.push(as);
     store.logAssignment(as);
     broadcastState();
-    emitDispatch({ assignmentId: as.id, incidentId, role: 'primary', targetZone: inc.zone_id, agentId: newAgentId, text: `Operator override: ${zoneName}. Go now.`, audioUrl: null, lang: 'fr' });
+    emitDispatch({ assignmentId: as.id, incidentId, role: 'primary', targetZone: inc.zone_id, agentId: newAgentId, text: `Operator override: ${zoneName}. Go now.`, audioUrl: null, lang: 'en' });
   }
   store.logEvent('override', { incidentId, newAgentId, reason });
   io.emit('override_log', { incidentId, newAgentId, reason });
@@ -300,7 +300,7 @@ async function dispatchAgentToZone({ agentId, zoneId, reason, textOverride }) {
   store.logAssignment(as);
   broadcastState();
   const zoneName = zoneById(state, zoneId)?.name || zoneId;
-  const lang = agent.languages?.[0] || 'fr';
+  const lang = 'en'; // dispatch texts are English on this branch -> match the TTS voice
   const text = textOverride || `Reinforcement requested: proceed to ${zoneName} to maintain coverage.`;
   let audioUrl = null;
   try { audioUrl = (await speak(text, lang, { id: as.id })).audioUrl; } catch (e) { console.warn(`[operator] TTS KO ${e.message}`); }
