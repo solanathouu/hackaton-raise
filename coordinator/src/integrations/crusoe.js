@@ -26,16 +26,48 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Extrait et parse le JSON même si le modèle entoure de \`\`\`json. */
+/** Modèles Nemotron : thinking consomme le budget tokens → `content` vide si non désactivé. */
+function isNemotronModel(model) {
+  return /nemotron/i.test(model || '');
+}
+
+/** Paramètres Crusoe/vLLM pour forcer la Decision JSON dans `content`. */
+function crusoeRequestExtras(model) {
+  if (!isNemotronModel(model)) return {};
+  return {
+    chat_template_kwargs: {
+      enable_thinking: false,
+      force_nonempty_content: true,
+    },
+  };
+}
+
+/** Extrait un objet JSON même noyé dans du raisonnement / fences markdown. */
+function parseJsonFromText(text) {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = (fenced ? fenced[1] : text).trim();
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start >= 0 && end > start) return JSON.parse(candidate.slice(start, end + 1));
+    throw new Error('JSON illisible dans réponse LLM');
+  }
+}
+
+/** Extrait et parse le JSON depuis content, reasoning_content ou reasoning (Nemotron). */
 export function extractDecisionJson(message) {
-  let text = message?.content?.trim() || '';
-  if (!text && message?.reasoning_content?.trim()) {
-    text = message.reasoning_content.trim();
+  const fields = [message?.content, message?.reasoning_content, message?.reasoning];
+  let text = '';
+  for (const field of fields) {
+    if (field != null && String(field).trim()) {
+      text = String(field).trim();
+      break;
+    }
   }
   if (!text) throw new Error('réponse LLM vide');
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const raw = fenced ? fenced[1].trim() : text;
-  return JSON.parse(raw);
+  return parseJsonFromText(text);
 }
 
 function backfillPool(snapshot, targetZone) {
@@ -151,6 +183,7 @@ async function callCrusoeOnce(snapshot, transcript, model, userContent) {
     response_format: { type: 'json_object' },
     temperature: 0,
     max_tokens: MAX_OUTPUT_TOKENS,
+    ...crusoeRequestExtras(model),
   });
   const parsed = extractDecisionJson(resp.choices?.[0]?.message);
   const { ok, errors, decision } = validateDecision(parsed, snapshot);
@@ -232,6 +265,7 @@ export async function prewarmCrusoe() {
         messages,
         max_tokens: 64,
         response_format: { type: 'json_object' },
+        ...crusoeRequestExtras(model),
       }),
     ),
   );

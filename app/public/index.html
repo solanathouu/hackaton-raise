@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
@@ -31,27 +31,62 @@
 
     /* ---- header ---- */
     header {
-      display:flex; align-items:center; gap:10px; padding:12px 16px;
-      padding-top:calc(12px + env(safe-area-inset-top));
+      display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; padding:10px 16px;
+      padding-top:calc(10px + env(safe-area-inset-top));
       background:linear-gradient(180deg, #131922, var(--panel));
       border-bottom:1px solid var(--line);
       box-shadow:var(--hairline), 0 4px 16px rgba(0,0,0,.25);
       position:sticky; top:0; z-index:5;
     }
-    header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
-    header .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; }
-    header .dot.on { background:var(--ok); }
+    header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; flex:none; }
+    header .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; transition:background .25s var(--ease), box-shadow .25s var(--ease); }
+    header .dot.on { background:var(--ok); box-shadow:0 0 8px rgba(46,168,98,.45); }
+    .header-badges { display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0; }
     #who {
       font:600 13px/1 -apple-system, system-ui, sans-serif; color:var(--accent);
-      background:transparent; border:1px solid var(--line); border-radius:var(--r);
-      padding:7px 8px; max-width:150px;
+      background:var(--panel2); border:1px solid var(--line); border-radius:var(--r);
+      padding:10px 12px; flex:0 1 150px; min-width:90px; max-width:150px; min-height:44px;
+      transition:border-color .2s var(--ease), background .2s var(--ease);
     }
+    #who:focus { outline:none; border-color:var(--accent); }
 
-    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:5px 9px; border-radius:6px; border:1px solid var(--line); white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; transition:opacity .2s var(--ease); }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
+    .badge.demo {
+      background:linear-gradient(135deg, #1a1533 0%, #251e45 100%);
+      color:#d4c4ff; border-color:#6d28d9; letter-spacing:1.1px;
+      box-shadow:0 0 14px rgba(109,40,217,.22), inset 0 1px 0 rgba(255,255,255,.06);
+      max-width:none;
+    }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; background:var(--panel2); }
+    .roster-toggle button {
+      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:9px 11px; min-height:44px; min-width:42px;
+      border:none; background:transparent; color:var(--dim); letter-spacing:.5px;
+      transition:background .2s var(--ease), color .2s var(--ease);
+    }
+    .roster-toggle button.sel { background:#0c2030; color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+    .roster-toggle button[data-mode="demo"].sel { background:#1a1533; color:#d4c4ff; box-shadow:inset 0 -2px 0 #8b5cf6; }
     @keyframes pulse { 50% { opacity:.45; } }
+
+    /* ---- agent picker (demo team cards) ---- */
+    .agent-strip { display:none; gap:8px; padding:10px 16px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      background:var(--panel); border-bottom:1px solid var(--line); scrollbar-width:none; }
+    .agent-strip::-webkit-scrollbar { display:none; }
+    .agent-strip.on { display:flex; }
+    .agent-card {
+      flex:0 0 auto; min-width:108px; min-height:44px; padding:8px 10px; text-align:left;
+      background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); color:var(--txt);
+      cursor:pointer; transition:border-color .2s var(--ease), background .2s var(--ease), transform .15s var(--ease);
+    }
+    .agent-card:active { transform:scale(.97); }
+    .agent-card.sel { border-color:var(--accent); background:#0c2030; box-shadow:0 0 0 1px rgba(76,194,255,.15); }
+    .agent-card .agent-id { display:block; font:700 11px/1 var(--mono); color:var(--accent); letter-spacing:.5px; }
+    .agent-card .agent-name { display:block; font-size:12px; font-weight:600; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+    .agent-card .agent-role { display:block; font-size:9px; color:var(--dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+    .agent-card .agent-zone { display:inline-block; font:700 9px/1 var(--mono); color:var(--dim); margin-top:5px; padding:3px 6px; border-radius:4px; border:1px solid var(--line); background:var(--bg); }
+    .agent-card.sel .agent-zone { color:var(--accent); border-color:#1d4a63; }
 
     /* ---- vues ---- */
     main { max-width:640px; margin:0 auto; padding:16px 16px calc(76px + env(safe-area-inset-bottom)); }
@@ -66,6 +101,12 @@
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 60%);
       box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5);
       border:1px solid rgba(255,255,255,.05);
+      transition:box-shadow .25s var(--ease);
+    }
+    .ptt-shell:not(:has(.ptt.rec)) { animation:pttidle 3.2s ease-in-out infinite; }
+    @keyframes pttidle {
+      0%, 100% { box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5), 0 0 0 0 rgba(76,194,255,0); }
+      50% { box-shadow:var(--hairline), 0 18px 50px rgba(0,0,0,.5), 0 0 32px 4px rgba(76,194,255,.1); }
     }
     .ptt {
       width:min(60vw, 240px); height:min(60vw, 240px); border-radius:50%;
@@ -74,9 +115,9 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
       user-select:none; touch-action:none; cursor:pointer;
       box-shadow:inset 0 1px 1px rgba(255,255,255,.09), inset 0 -14px 26px rgba(0,0,0,.35);
-      transition:transform .18s var(--ease), border-color .25s var(--ease), background .25s var(--ease);
+      transition:transform .18s var(--ease), border-color .25s var(--ease), background .25s var(--ease), box-shadow .18s var(--ease);
     }
-    .ptt:active { transform:scale(.96); }
+    .ptt:active { transform:scale(.94); box-shadow:inset 0 2px 8px rgba(0,0,0,.5), inset 0 -8px 16px rgba(0,0,0,.25); border-color:#3d4a5c; }
     .ptt .k { font-size:24px; font-weight:800; letter-spacing:4px; }
     .ptt .s { font-size:11px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
     .ptt.rec {
@@ -94,12 +135,25 @@
 
     /* ---- dispatchs (l'événement central) ---- */
     .dispatch {
-      background:linear-gradient(180deg, #131922, var(--panel) 55%);
-      border:1px solid var(--line); border-left:3px solid var(--accent);
-      border-radius:var(--r); padding:16px; margin-bottom:10px;
-      box-shadow:var(--hairline), var(--elev);
+      position:relative;
+      background:linear-gradient(180deg, #161c26, var(--panel) 55%);
+      border:1px solid #2a3340; border-left:4px solid var(--accent);
+      border-radius:var(--r); padding:16px 16px 16px 18px; margin-bottom:10px;
+      box-shadow:var(--hairline), var(--elev), inset 0 0 0 1px rgba(76,194,255,.04);
+      transition:opacity .3s var(--ease), border-color .25s var(--ease);
+      animation:fadein .25s var(--ease);
     }
-    .dispatch.done { opacity:.45; border-left-color:var(--ok); }
+    .dispatch::before {
+      content:'◉'; position:absolute; top:14px; right:14px;
+      font-size:13px; color:var(--accent); opacity:.55; line-height:1;
+    }
+    .dispatch.primary::before { color:var(--bad); }
+    .dispatch.witness::before { color:var(--dim); opacity:.35; }
+    .dispatch.done { opacity:.42; border-left-color:var(--ok); }
+    .dispatch.done::before { content:'✓'; color:var(--ok); opacity:.5; }
+    .dispatch.timeout { opacity:.5; border-left-color:var(--warn); }
+    .dispatch.timeout::before { content:'⏱'; color:var(--warn); opacity:.75; }
+    .dispatch.timeout .timeout-note { display:block; margin-top:10px; font-size:12px; color:var(--warn); font-weight:600; }
     /* liseré cohérent avec le tag de rôle */
     .dispatch.primary { border-left-color:var(--bad); }
     .dispatch.backfill { border-left-color:var(--accent); }
@@ -109,20 +163,49 @@
     .dispatch .tag.primary { background:#33130f; color:var(--bad); }
     .dispatch .tag.backfill { background:#0c2030; color:var(--accent); }
     .dispatch .tag.witness { background:var(--panel2); color:var(--dim); }
-    .dispatch .zone { font:600 12px var(--mono); color:var(--dim); }
+    .dispatch .zone { font:600 11px var(--mono); color:var(--dim); letter-spacing:.5px; text-transform:uppercase; }
     .dispatch .t { font-size:17px; font-weight:600; line-height:1.4; margin-bottom:14px; }
     .dispatch .row { display:flex; gap:8px; }
     .ackbtn {
-      /* vert assombri : blanc/vert passe WCAG AA (bouton critique, lisible au soleil) */
-      flex:1; background:linear-gradient(180deg, #27995a, #1e7a47); border:none; color:#fff;
+      position:relative; overflow:hidden; isolation:isolate;
+      flex:1; background:#2a3038; border:none; color:#fff;
       font:700 15px/1 -apple-system, system-ui, sans-serif;
       letter-spacing:.5px; padding:15px; border-radius:var(--r);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 6px 18px rgba(0,0,0,.3);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.3);
+      transition:transform .15s var(--ease), color .25s var(--ease);
+      --ack-progress:1;
+    }
+    .ackbtn .ack-fill {
+      position:absolute; left:0; top:0; bottom:0; width:calc(var(--ack-progress) * 100%);
+      background:linear-gradient(180deg, #27995a, #1e7a47);
+      transition:width .25s linear;
+      z-index:0;
+    }
+    .ackbtn .ack-label { position:relative; z-index:1; font-variant-numeric:tabular-nums; }
+    .ackbtn.urgent:not(.expired) .ack-fill {
+      background:linear-gradient(180deg, #d94a38, #a83224);
+      animation:ackpulse .85s ease-in-out infinite;
+    }
+    @keyframes ackpulse { 50% { filter:brightness(1.12); } }
+    .ackbtn.expired {
+      background:#3a424a; color:#8b96a5; box-shadow:none; cursor:not-allowed;
+    }
+    .ackbtn.expired .ack-fill { width:0 !important; }
+    .ackbtn:active:not(.expired):not(:disabled) { transform:scale(.975); }
+    .ackbtn:disabled { pointer-events:none; }
+    .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
+    .replay:active { transform:scale(.97); }
+    /* témoin : simple accusé de lecture local (la consigne est « reste en place ») */
+    .gotitbtn {
+      flex:1; background:var(--panel2); border:1px solid var(--line); color:var(--dim);
+      font:600 14px/1 -apple-system, system-ui, sans-serif; padding:14px; border-radius:var(--r);
       transition:transform .15s var(--ease);
     }
-    .ackbtn:active { transform:scale(.975); }
-    .replay { background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:var(--r); padding:0 16px; font:inherit; }
-    .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 0; }
+    .gotitbtn:active { transform:scale(.975); }
+    .empty {
+      color:var(--dim); font-size:13px; text-align:center; padding:24px 14px;
+      border:1px dashed var(--line); border-radius:var(--r);
+    }
 
     /* ---- vue CARTE ---- */
     .card {
@@ -135,14 +218,17 @@
     .mapwrap svg { width:100%; height:100%; display:block; cursor:grab; }
     .mapwrap svg:active { cursor:grabbing; }
     .znode { cursor:pointer; }
-    .zlabel { font:700 13px var(--mono); fill:var(--txt); pointer-events:none; }
-    .zsub { font:11px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; }
+    /* halo sombre derrière les labels : lisibles même par-dessus les arêtes du graphe */
+    .zlabel { font:700 14px var(--mono); fill:var(--txt); pointer-events:none; paint-order:stroke; stroke:#0b0e13; stroke-width:4px; stroke-linejoin:round; }
+    .zsub { font:600 12px -apple-system, system-ui, sans-serif; fill:var(--dim); pointer-events:none; paint-order:stroke; stroke:#0b0e13; stroke-width:4px; stroke-linejoin:round; }
     .adotlabel { font:700 9px var(--mono); fill:#fff; pointer-events:none; }
     .edge { stroke:#1c232e; stroke-width:2; }
-    .route { stroke:var(--accent); stroke-width:5; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8; animation:dash 1s linear infinite; }
+    .route { stroke:var(--accent); stroke-width:6; fill:none; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:10 8;
+      filter:drop-shadow(0 0 6px rgba(76,194,255,.45)); animation:dash 1s linear infinite; }
     @keyframes dash { to { stroke-dashoffset:-18; } }
-    .routebanner { display:none; margin-top:10px; padding:12px; background:#0c2030; border:1px solid #1d4a63; border-radius:var(--r); }
-    .routebanner.on { display:block; }
+    .routebanner { display:none; margin-top:10px; padding:14px; background:linear-gradient(180deg, #0e2436, #0c2030); border:1px solid #1d4a63; border-left:3px solid var(--accent); border-radius:var(--r); box-shadow:var(--hairline); }
+    .routebanner.on { display:block; animation:fadein .25s var(--ease); }
+    @keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
     .hint { font-size:11px; color:var(--dim); margin-top:8px; }
     .zones { display:grid; grid-template-columns:repeat(auto-fill, minmax(112px, 1fr)); gap:8px; }
     .zone { border:1px solid var(--line); border-radius:var(--r); padding:9px 10px; background:var(--bg); }
@@ -176,36 +262,73 @@
     nav button {
       flex:1; background:none; border:none; border-top:2px solid transparent;
       color:var(--dim); font:700 11px/1 -apple-system, system-ui, sans-serif;
-      letter-spacing:2px; padding:15px 0 13px;
+      letter-spacing:2px; padding:14px 0; min-height:48px;
+      transition:color .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease);
     }
+    nav button:active { background:rgba(255,255,255,.03); }
     nav button.on { color:var(--accent); border-top-color:var(--accent); }
+
+    /* ---- guidance banner (proactive reposition) ---- */
+    .guidance {
+      display:none; padding:12px 16px; background:linear-gradient(90deg, #0c2030, #11151c);
+      border-bottom:1px solid #1d4a63; font-size:14px; line-height:1.45;
+    }
+    .guidance.on { display:flex; gap:10px; align-items:flex-start; animation:fadein .25s var(--ease); }
+    .guidance-icon { flex:none; font:700 13px/1 var(--mono); color:var(--accent); padding-top:2px; }
+    .guidance-body { flex:1; min-width:0; }
+    .guidance b { color:var(--accent); font-weight:700; }
+    .guidance-go { margin-top:8px; font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:10px 14px; min-height:44px; }
+    .guidance-go:active { transform:scale(.97); }
+    .gps-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+    .gps-row button { font:600 12px/1 -apple-system, system-ui, sans-serif; color:var(--txt); background:var(--panel2); border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; min-height:44px; transition:border-color .2s var(--ease), background .2s var(--ease); }
+    .gps-row button.live { background:#0c2030; border-color:var(--accent); color:var(--accent); }
+    #posStatus { font-size:11px; color:var(--dim); flex:1; min-width:140px; }
+    .feed .pos { color:var(--accent); }
+    .feed .guide { color:var(--accent); }
   </style>
 </head>
 <body>
   <header>
     <span class="dot" id="dot"></span>
     <h1>CONDUCTOR</h1>
-    <span id="mode" class="badge" style="display:none"></span>
+    <div class="header-badges">
+      <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
+      <span id="mode" class="badge" style="display:none"></span>
+    </div>
     <span style="flex:1"></span>
+    <div class="roster-toggle" id="rosterToggle">
+      <button type="button" data-mode="real" class="sel">Real</button>
+      <button type="button" data-mode="demo">Demo</button>
+    </div>
     <select id="who"></select>
   </header>
+  <div class="agent-strip" id="agentStrip"></div>
+  <div class="guidance" id="guidance"></div>
 
   <main>
     <!-- ============ VUE RADIO (défaut, le talkie) ============ -->
     <section class="view on" id="view-radio">
       <div class="ptt-stage">
         <div class="ptt-shell">
-          <button class="ptt" id="ptt"><span class="k">PARLER</span><span class="s">maintenir</span></button>
+          <button class="ptt" id="ptt"><span class="k">SPEAK</span><span class="s">hold</span></button>
         </div>
-        <p class="ptt-hint">Décris l'urgence. Le dispatch revient ici, sur le bon téléphone.</p>
+        <p class="ptt-hint">Hold to describe the emergency. The dispatch arrives on the right responder's phone.</p>
       </div>
-      <div id="dispatches"><p class="empty">Aucun dispatch pour l'instant.</p></div>
+      <div id="dispatches"><p class="empty">No dispatches yet.</p></div>
     </section>
 
     <!-- ============ VUE CARTE ============ -->
     <section class="view" id="view-map">
       <div class="card">
-        <h2>Carte du site</h2>
+        <h2>My position</h2>
+        <div class="gps-row">
+          <button id="gpsBtn">📍 One-shot GPS</button>
+          <button id="gpsLiveBtn">▶ Live GPS</button>
+          <span id="posStatus">Seed zone · tap map or GPS to update</span>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Site map</h2>
         <div class="mapwrap">
           <svg id="map" viewBox="0 0 900 650" preserveAspectRatio="xMidYMid meet">
             <g id="mapg">
@@ -217,10 +340,10 @@
           </svg>
         </div>
         <div class="routebanner" id="routebanner"></div>
-        <p class="hint">Tu es : <b id="myzone">…</b>. Tape une zone pour t'y positionner. Après « je m'en occupe », ton itinéraire s'affiche ici.</p>
+        <p class="hint">You are in: <b id="myzone">…</b>. Tap a zone to set your position. After "On my way", your route appears here.</p>
       </div>
       <div class="card">
-        <h2>Couverture des zones</h2>
+        <h2>Zone coverage</h2>
         <div class="zones" id="zones"></div>
       </div>
     </section>
@@ -228,24 +351,26 @@
     <!-- ============ VUE PLUS (journal, démo, réglages) ============ -->
     <section class="view" id="view-more">
       <div class="card">
-        <h2>Langue du signalement</h2>
+        <h2>Report language</h2>
         <div class="lang">
-          <button data-lang="fr" class="sel">FR</button><button data-lang="es">ES</button>
+          <button data-lang="fr">FR</button><button data-lang="en" class="sel">EN</button><button data-lang="es">ES</button>
         </div>
       </div>
       <div class="card demo">
-        <h2>Démo sans micro</h2>
+        <h2>Demo without mic</h2>
         <div class="row">
-          <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1 · surplus Z2</button>
-          <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2 · cascade Z8</button>
-          <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3 · warning</button>
-          <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4 · réserviste ES</button>
-          <button id="f8">F8 · protège Marco</button>
+          <button data-tr="medical issue at the roller coaster, someone is on the ground" data-l="en">S1 · surplus Z2</button>
+          <button data-tr="cardiac arrest at the extreme ride, he is not breathing" data-l="en">S2 · cascade Z8</button>
+          <button data-tr="medical issue at the kids zone, person unconscious" data-l="en">S3 · warning</button>
+          <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en">S4 · reserve Z1</button>
+          <button data-tr="cardiac arrest at the entrance, not breathing" data-l="en">S5 · cardiac EN</button>
+          <button id="f8">F8 · protect lead</button>
+          <button id="scanRepo">Scan reposition</button>
           <button id="reset">Reset</button>
         </div>
       </div>
       <div class="card">
-        <h2>Journal</h2>
+        <h2>Log</h2>
         <div class="feed" id="feed"></div>
       </div>
     </section>
@@ -253,8 +378,8 @@
 
   <nav>
     <button class="on" data-view="radio">RADIO</button>
-    <button data-view="map">CARTE</button>
-    <button data-view="more">PLUS</button>
+    <button data-view="map">MAP</button>
+    <button data-view="more">MORE</button>
   </nav>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -264,11 +389,41 @@
     // persisté ensuite — plus besoin de toucher le menu à chaque ouverture.
     const qsAgent = new URLSearchParams(location.search).get('agent');
     if (qsAgent) localStorage.setItem('me', qsAgent.toUpperCase());
-    let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || 'A7';
-    let lang = 'fr';
+    let demoMode = localStorage.getItem('demoMode') === 'true';
+    let rosterSynced = false;
+    let me = (qsAgent && qsAgent.toUpperCase()) || localStorage.getItem('me') || (demoMode ? 'W1' : 'A7');
+    let lang = 'en';
     let lastState = null;
+    let ackTimeoutMs = 15000;
+    const ackCountdowns = new Map();
     const crowdByZone = {};
     const $ = (s) => document.querySelector(s);
+    // Échappe tout texte externe (transcript STT, justification LLM) avant innerHTML.
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+    fetch('/health').then((r) => r.json()).then((h) => {
+      if (h.ackTimeoutMs > 0) ackTimeoutMs = h.ackTimeoutMs;
+    }).catch(() => {});
+
+    function showGuidance(g) {
+      const el = $('#guidance');
+      if (!g?.message) { el.classList.remove('on'); return; }
+      el.innerHTML = `<span class="guidance-icon">↗</span><div class="guidance-body"><b>Reposition</b> · ${esc(g.message)}` +
+        (g.targetZone ? `<br><button type="button" class="guidance-go" onclick="goZone('${g.targetZone}')">Go ${g.targetZone}</button>` : '') +
+        `</div>`;
+      el.classList.add('on');
+      if (navigator.vibrate) navigator.vibrate(80);
+    }
+    window.goZone = (zoneId) => { socket.emit('position', { agentId: me, zoneId }); feed(`📍 Position: ${zoneId}`, 'pos'); };
+
+    function updatePosStatus(st) {
+      const mine = st?.agents?.find(a => a.id === me);
+      if (!mine) return;
+      const zn = st.zones.find(z => z.id === mine.current_zone)?.name || mine.current_zone;
+      const when = mine.position_at ? new Date(mine.position_at).toLocaleTimeString('en') : 'seed';
+      const gps = mine.lat != null ? ` · GPS ${mine.lat.toFixed(5)},${mine.lon.toFixed(5)}` : '';
+      $('#posStatus').textContent = `${mine.current_zone} · ${zn} · updated ${when}${gps}`;
+    }
 
     // --- navigation 3 vues (radio / carte / plus) ---
     function switchView(name) {
@@ -328,7 +483,7 @@
     mapSvg.addEventListener('pointermove', (e) => { if (!drag) return; const r = mapSvg.getBoundingClientRect(); const s = 900 / r.width; const dx = (e.clientX - drag.x) * s, dy = (e.clientY - drag.y) * s; if (Math.abs(dx) + Math.abs(dy) > 6) dragged = true; vt.x = drag.vx + dx; vt.y = drag.vy + dy; applyVT(); });
     mapSvg.addEventListener('pointerup', () => { drag = null; });
     // tap zone -> position
-    $('#znodes').addEventListener('click', (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest('.znode'); if (!g) return; socket.emit('position', { agentId: me, zoneId: g.dataset.zone }); feed(`📍 Position : ${g.dataset.zone}`); });
+    $('#znodes').addEventListener('click', (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest('.znode'); if (!g) return; socket.emit('position', { agentId: me, zoneId: g.dataset.zone }); feed(`📍 Position: ${g.dataset.zone}`, 'pos'); });
 
     // itinéraire post-accusé
     function showRoute(target) {
@@ -336,64 +491,292 @@
       const r = shortestRoute(meA.current_zone, target); if (!r) return;
       $('#routeg').innerHTML = `<polyline class="route" points="${r.path.map(z => ZONES_XY[z] ? ZONES_XY[z].join(',') : '').filter(Boolean).join(' ')}"/>`;
       const names = r.path.map(z => st.zones.find(x => x.id === z)?.name || z).join(' → ');
-      $('#routebanner').innerHTML = `<div style="font-weight:600">Itinéraire vers ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:5px 0 9px">${names} · ~${fmtSec(r.sec)}</div><button class="ackbtn" onclick="arrived('${target}')">Arrivé sur zone</button>`;
+      $('#routebanner').innerHTML = `<div style="font-weight:600">Route to ${st.zones.find(x => x.id === target)?.name || target}</div><div style="font-size:12px;color:var(--dim);margin:5px 0 9px">${names} · <span style="font-family:var(--mono);color:var(--accent)">~${fmtSec(r.sec)}</span></div><button class="ackbtn" onclick="arrived('${target}')"><span class="ack-fill"></span><span class="ack-label">Arrived on site</span></button>`;
       $('#routebanner').classList.add('on');
     }
-    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrivé : ${target}`); switchView('radio'); };
+    window.arrived = (target) => { socket.emit('position', { agentId: me, zoneId: target }); $('#routebanner').classList.remove('on'); $('#routeg').innerHTML = ''; feed(`📍 Arrived: ${target}`); switchView('radio'); };
+
+    function rosterAgents(st) {
+      const list = st?.agents || [];
+      return demoMode ? list.filter((a) => !a.is_reserve) : list;
+    }
+    function updateDemoUI() {
+      $('#demoBadge').style.display = demoMode ? '' : 'none';
+      document.querySelectorAll('#rosterToggle button').forEach((b) => {
+        b.classList.toggle('sel', b.dataset.mode === (demoMode ? 'demo' : 'real'));
+      });
+    }
+    function agentRoleLabel(a) {
+      if (a.role) return a.role.split('·')[0].trim();
+      return (a.skills || []).slice(0, 2).join(' · ') || 'staff';
+    }
+    function pickAgent(id) {
+      if (id === me) return;
+      me = id;
+      localStorage.setItem('me', me);
+      socket.emit('hello', { agentId: me });
+      clearAllCountdowns();
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
+      $('#guidance').classList.remove('on');
+      if (lastState) rebuildPicker(lastState);
+    }
+    function rebuildPicker(st) {
+      const who = $('#who');
+      const strip = $('#agentStrip');
+      const opts = rosterAgents(st);
+      if (demoMode) {
+        who.style.display = 'none';
+        strip.classList.add('on');
+        strip.innerHTML = opts.map((a) => {
+          const role = agentRoleLabel(a);
+          return `<button type="button" class="agent-card${a.id === me ? ' sel' : ''}" data-id="${a.id}">
+            <span class="agent-id">${a.id}</span>
+            <span class="agent-name">${a.name}</span>
+            <span class="agent-role">${role}</span>
+            <span class="agent-zone">${a.current_zone || '?'}</span>
+          </button>`;
+        }).join('');
+        strip.querySelectorAll('.agent-card').forEach((b) => { b.onclick = () => pickAgent(b.dataset.id); });
+      } else {
+        strip.classList.remove('on');
+        strip.innerHTML = '';
+        who.style.display = '';
+        who.innerHTML = opts.map((a) => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve ? ' (R)' : ''}</option>`).join('');
+      }
+      if (!opts.some((a) => a.id === me)) {
+        me = demoMode ? 'W1' : (localStorage.getItem('me') || 'A7');
+        if (!opts.some((a) => a.id === me)) me = opts[0]?.id || me;
+        localStorage.setItem('me', me);
+        socket.emit('hello', { agentId: me });
+      }
+      who.value = me;
+    }
+    function setDemoMode(on) {
+      demoMode = !!on;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
+      socket.emit('reset', { demo: demoMode });
+      clearAllCountdowns();
+      $('#feed').innerHTML = '';
+      $('#mode').style.display = 'none';
+      $('#guidance').classList.remove('on');
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
+    }
+    document.querySelectorAll('#rosterToggle button').forEach((b) => {
+      b.onclick = () => {
+        const next = b.dataset.mode === 'demo';
+        if (next === demoMode) return;
+        setDemoMode(next);
+      };
+    });
+    updateDemoUI();
 
     socket.on('connect', () => { $('#dot').classList.add('on'); socket.emit('hello', { agentId: me }); });
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
 
     // --- state / zones ---
     socket.on('state', (st) => {
-      lastState = st;
-      const who = $('#who');
-      if (who.options.length !== st.agents.length) {
-        who.innerHTML = st.agents.map(a => `<option value="${a.id}">${a.id} · ${a.name}${a.is_reserve?' (R)':''}</option>`).join('');
-        who.value = me;
+      if (!rosterSynced && st.demoMode !== demoMode) {
+        rosterSynced = true;
+        socket.emit('reset', { demo: demoMode });
+        return;
       }
+      rosterSynced = true;
+      demoMode = !!st.demoMode;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      lastState = st;
+      updateDemoUI();
+      rebuildPicker(st);
       renderZones(st);
       renderMap(st);
+      updatePosStatus(st);
     });
+
+    socket.on('guidance', (g) => { if (g.agentId === me) showGuidance(g); });
+    socket.on('error_msg', (e) => alert(e.message || 'Error'));
+    socket.on('position_log', (p) => {
+      const extra = p.lat != null ? ` (${p.lat.toFixed(5)},${p.lon.toFixed(5)} ±${p.accuracy ?? '?'}m)` : '';
+      feed(`📍 ${p.agentId} → ${p.zoneId}${extra} [${p.source}]`, 'pos');
+    });
+    socket.on('guidance_log', (g) => {
+      const who = g.agentId ? g.agentId : 'scan';
+      feed(`↗ guidance ${who}: ${g.message || g.targetZone || ''}`, 'guide');
+    });
+
+    let gpsWatch = null;
+    let lastGpsAt = 0;
+    let lastGpsLat = null;
+    let lastGpsLon = null;
+    function sendGps(pos) {
+      const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+      const now = Date.now();
+      const moved = lastGpsLat == null ? 1 : Math.abs(lat - lastGpsLat) + Math.abs(lon - lastGpsLon);
+      if (lastGpsLat != null && now - lastGpsAt < 10000 && moved < 0.00005) return;
+      lastGpsAt = now; lastGpsLat = lat; lastGpsLon = lon;
+      socket.emit('gps_position', { agentId: me, lat, lon, accuracy });
+    }
+    $('#gpsBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS unavailable in this browser.');
+      $('#gpsBtn').textContent = '… locating';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => { sendGps(pos); $('#gpsBtn').textContent = '📍 One-shot GPS'; },
+        (err) => { alert('GPS: ' + err.message); $('#gpsBtn').textContent = '📍 One-shot GPS'; },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 },
+      );
+    };
+    $('#gpsLiveBtn').onclick = () => {
+      if (!navigator.geolocation) return alert('GPS unavailable in this browser.');
+      const btn = $('#gpsLiveBtn');
+      if (gpsWatch != null) {
+        navigator.geolocation.clearWatch(gpsWatch);
+        gpsWatch = null;
+        btn.textContent = '▶ Live GPS';
+        btn.classList.remove('live');
+        return;
+      }
+      btn.textContent = '⏹ Stop GPS';
+      btn.classList.add('live');
+      gpsWatch = navigator.geolocation.watchPosition(
+        (pos) => sendGps(pos),
+        (err) => alert('Live GPS: ' + err.message),
+        { enableHighAccuracy: true, maximumAge: 8000, timeout: 15000 },
+      );
+      navigator.geolocation.getCurrentPosition((pos) => sendGps(pos), () => {}, { enableHighAccuracy: true, timeout: 10000 });
+    };
 
     socket.on('crowd_density', (p) => {
       crowdByZone[p.zoneId] = p;
       if (lastState) renderZones(lastState);
       const hot = p.ratio && p.ratio >= 1.5;
-      feed(`📡 Capteur BLE · ${p.zoneId} : ${p.deviceCount} appareils${p.ratio ? ` (×${p.ratio} vs normale)` : ''}`, hot ? 'warn' : '');
+      feed(`📡 BLE sensor · ${p.zoneId}: ${p.deviceCount} devices${p.ratio ? ` (×${p.ratio} vs baseline)` : ''}`, hot ? 'warn' : '');
     });
 
-    $('#who').onchange = (e) => { me = e.target.value; localStorage.setItem('me', me); socket.emit('hello', { agentId: me }); $('#dispatches').innerHTML='<p class="empty">Aucun dispatch pour l\'instant.</p>'; };
+    $('#who').onchange = (e) => pickAgent(e.target.value);
     document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; document.querySelectorAll('.lang button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
+
+    function clearAckCountdown(assignmentId) {
+      const t = ackCountdowns.get(assignmentId);
+      if (!t) return;
+      clearInterval(t.interval);
+      ackCountdowns.delete(assignmentId);
+    }
+    function clearAllCountdowns() {
+      for (const t of ackCountdowns.values()) clearInterval(t.interval);
+      ackCountdowns.clear();
+    }
+
+    function ackBtnHtml(assignmentId, targetZone, label) {
+      return `<button class="ackbtn" data-aid="${assignmentId}" onclick="ackIt('${assignmentId}','${targetZone}')"><span class="ack-fill"></span><span class="ack-label">${label}</span></button>`;
+    }
+
+    function updateAckButton(btn, remSec, progress) {
+      btn.style.setProperty('--ack-progress', String(Math.max(0, Math.min(1, progress))));
+      const label = btn.querySelector('.ack-label');
+      if (label) label.textContent = remSec > 0 ? `I'll handle it (${remSec}s)` : 'Timed out';
+      btn.classList.toggle('urgent', remSec > 0 && remSec <= 5);
+      btn.classList.toggle('expired', remSec <= 0);
+      if (remSec <= 0) btn.disabled = true;
+    }
+
+    function startAckCountdown(d) {
+      if (d.role === 'witness') return;
+      clearAckCountdown(d.assignmentId);
+      const card = document.getElementById('d_' + d.assignmentId);
+      const btn = card?.querySelector('.ackbtn');
+      if (!btn) return;
+      const deadline = (d.sentAt || Date.now()) + ackTimeoutMs;
+      const tick = () => {
+        const remMs = deadline - Date.now();
+        const remSec = Math.max(0, Math.ceil(remMs / 1000));
+        updateAckButton(btn, remSec, remMs / ackTimeoutMs);
+        if (remMs <= 0) {
+          clearAckCountdown(d.assignmentId);
+          card.classList.add('timeout');
+        }
+      };
+      tick();
+      ackCountdowns.set(d.assignmentId, { interval: setInterval(tick, 250), deadline });
+    }
+
+    function markAckTimedOut(data) {
+      clearAckCountdown(data.assignmentId);
+      const card = document.getElementById('d_' + data.assignmentId);
+      if (!card) return;
+      card.classList.add('timeout', 'done');
+      const btn = card.querySelector('.ackbtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('expired');
+        updateAckButton(btn, 0, 0);
+        const label = btn.querySelector('.ack-label');
+        if (label) {
+          label.textContent = data.reroutedTo
+            ? `Rerouted to ${data.reroutedTo}`
+            : 'Timed out — rerouting…';
+        }
+      }
+      let note = card.querySelector('.timeout-note');
+      if (!note) {
+        note = document.createElement('div');
+        note.className = 'timeout-note';
+        card.appendChild(note);
+      }
+      note.textContent = data.reroutedTo
+        ? `Rerouted to next responder (${data.reroutedTo})`
+        : 'No ack in time — operator may intervene';
+    }
 
     // --- dispatch reçu (seulement pour moi) : retour vue RADIO, c'est l'événement central ---
     socket.on('dispatch', (d) => {
       // Un re-route du même incident+rôle remplace l'ancienne consigne : on grise les cartes
       // obsolètes pour qu'il n'y ait toujours qu'UNE action verte possible.
       document.querySelectorAll(`#dispatches .dispatch[data-inc="${d.incidentId}"][data-role="${d.role}"]`)
-        .forEach((old) => old.classList.add('done'));
+        .forEach((old) => {
+          clearAckCountdown(old.id.replace(/^d_/, ''));
+          old.classList.add('done');
+        });
+      const totalSec = Math.ceil(ackTimeoutMs / 1000);
       const el = document.createElement('div');
       el.className = 'dispatch ' + (d.role || '');
       el.id = 'd_' + d.assignmentId;
       el.dataset.inc = d.incidentId; el.dataset.role = d.role;
-      el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${d.lang}</span></div>
-        <div class="t">${d.text}</div>
-        <div class="row"><button class="ackbtn" onclick="ackIt('${d.assignmentId}','${d.targetZone}')">Je m'en occupe</button>
-        ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Réécouter</button>`:''}</div>`;
+      // Témoin : la consigne est « reste en place » -> simple accusé de lecture local,
+      // pas de bouton d'engagement ni d'itinéraire (le serveur ne suit pas les témoins).
+      const actionHtml = d.role === 'witness'
+        ? `<button class="gotitbtn" onclick="gotIt('${d.assignmentId}')">Got it — staying in position</button>`
+        : ackBtnHtml(d.assignmentId, d.targetZone, `I'll handle it (${totalSec}s)`);
+      el.innerHTML = `<div class="meta"><span class="tag ${d.role}">${d.role}</span><span class="zone">${d.targetZone} · ${(d.lang || '').toUpperCase()}</span></div>
+        <div class="t">${esc(d.text)}</div>
+        <div class="row">${actionHtml}
+        ${d.audioUrl?`<button class="replay" onclick="playAudio('${d.audioUrl}')">Replay</button>`:''}</div>`;
       const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML='';
       box.prepend(el);
+      if (d.role !== 'witness') startAckCountdown(d);
       if (d.audioUrl) playAudio(d.audioUrl);
       if (navigator.vibrate) navigator.vibrate([120,60,120]);
       switchView('radio');
     });
-    window.ackIt = (id, target) => { socket.emit('ack', { assignmentId: id }); const el=$('#d_'+id); if(el) el.classList.add('done'); if (target) { showRoute(target); switchView('map'); } };
+    window.ackIt = (id, target) => {
+      clearAckCountdown(id);
+      socket.emit('ack', { assignmentId: id });
+      const el = $('#d_' + id);
+      if (el) { el.classList.add('done'); el.classList.remove('timeout'); }
+      if (target) { showRoute(target); switchView('map'); }
+    };
+    window.gotIt = (id) => { const el = $('#d_' + id); if (el) el.classList.add('done'); };
+    socket.on('ack_timeout', (data) => {
+      markAckTimedOut(data);
+      feed(data.reroutedTo
+        ? `⏱ No ack in time · rerouted ${data.role} to <b>${data.reroutedTo}</b>`
+        : `⏱ No ack in time for ${data.targetZone}`, 'warn');
+    });
     window.playAudio = (url) => { new Audio(url).play().catch(()=>{}); };
 
     // --- feed opérateur ---
     const feed = (html, cls='') => { const d=document.createElement('div'); d.className=cls; d.innerHTML=html; $('#feed').prepend(d); };
     const mode = $('#mode');
     function setMode(i) {
-      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
+      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'DEGRADED MODE'; mode.style.display = ''; }
       else if (i.source && i.source.startsWith('crusoe')) {
         mode.className = 'badge live';
         // label court : « Deepseek V4 » (le nom complet tronquait mi-mot sur mobile)
@@ -405,7 +788,7 @@
     // Écrasé par setMode() à l'arrivée de l'incident ; garde-fou 20 s si rien n'arrive.
     let analyseTimer = null;
     function analysing() {
-      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyse…'; mode.style.display = '';
+      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyzing…'; mode.style.display = '';
       clearTimeout(analyseTimer); analyseTimer = setTimeout(() => { mode.style.display = 'none'; }, 20000);
     }
     let lastIncidentId = null;
@@ -413,12 +796,12 @@
       clearTimeout(analyseTimer);
       lastIncidentId = i.id;
       setMode(i);
-      feed(`<b>${i.type||'incident'}</b> · ${i.zone_id} · sévérité ${i.severity??'?'} → primary <b>${i.primary_id}</b>`);
-      if (i.justification) feed(i.justification, 'just');
-      if (i.constraints_applied?.length) feed(`🔒 contrainte respectée : ${i.constraints_applied.join(' · ')}`, 'cstr');
+      feed(`<b>${esc(i.type||'incident')}</b> · ${i.zone_id} · severity ${i.severity??'?'} → primary <b>${i.primary_id}</b>`);
+      if (i.justification) feed(esc(i.justification), 'just');
+      if (i.constraints_applied?.length) feed(`🔒 constraint applied: ${esc(i.constraints_applied.join(' · '))}`, 'cstr');
     });
-    socket.on('coverage_warning', (w) => feed(`⚠ ${w.message}`, 'warn'));
-    socket.on('ack_log', (a) => feed(`✅ ${a.agentId} a accusé ${a.assignmentId}`));
+    socket.on('coverage_warning', (w) => feed(`⚠ ${esc(w.message)}`, 'warn'));
+    socket.on('ack_log', (a) => feed(`✅ ${a.agentId} acknowledged ${a.assignmentId}`));
     socket.on('override_log', (o) => feed(`✋ override → ${o.newAgentId}${o.reason?` (${o.reason})`:''}`));
 
     // --- PTT micro ---
@@ -436,10 +819,10 @@
           analysing();
           stream.getTracks().forEach(t => t.stop());
         };
-        rec.start(); $('#ptt').classList.add('rec'); pttLabel('À TOI', 'relâche pour envoyer');
-      } catch (e) { alert('Micro bloqué : ' + e.message + '\nActive HTTPS (npm run certs) ou utilise les boutons démo (vue PLUS).'); }
+        rec.start(); $('#ptt').classList.add('rec'); pttLabel('YOUR TURN', 'release to send');
+      } catch (e) { alert('Microphone blocked: ' + e.message + '\nEnable HTTPS (npm run certs) or use the demo buttons (MORE view).'); }
     }
-    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('PARLER', 'maintenir'); }
+    function stopRec() { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('SPEAK', 'hold'); }
     const ptt = $('#ptt');
     ptt.addEventListener('mousedown', startRec); ptt.addEventListener('mouseup', stopRec);
     ptt.addEventListener('touchstart', (e)=>{e.preventDefault();startRec();}); ptt.addEventListener('touchend', (e)=>{e.preventDefault();stopRec();});
@@ -447,11 +830,21 @@
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); switchView('radio'); });
     $('#f8').onclick = () => {
-      if (!lastIncidentId) return alert('Déclenche d\'abord un incident (ex : S2).');
-      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: 'A2', reason: 'protège Marco' });
-      feed('✋ override : « protège Marco » → contrainte apprise. Relance S2 : le moteur ne ponctionnera plus Marco.', 'cstr');
+      if (!lastIncidentId) return alert('Trigger an incident first (e.g. S2).');
+      // reason nomme l'agent PROTÉGÉ (constraint F8) ; newAgentId = son remplaçant.
+      const p = demoMode
+        ? { name: 'Prakash', reassignTo: 'W1' }   // protège W4, Nathan (W1) reprend
+        : { name: 'Marco', reassignTo: 'A2' };    // protège A1, Ana (A2) reprend
+      socket.emit('operator_override', { incidentId: lastIncidentId, newAgentId: p.reassignTo, reason: `protect ${p.name}` });
+      feed(`✋ override: "protect ${p.name}" → constraint learned. Re-run S2: the engine will no longer pull ${p.name}.`, 'cstr');
     };
-    $('#reset').onclick = () => { socket.emit('reset'); $('#feed').innerHTML=''; $('#mode').style.display='none'; };
+    $('#scanRepo').onclick = () => { socket.emit('scan_reposition'); feed('↗ Reposition scan requested', 'guide'); };
+    $('#reset').onclick = () => {
+      clearAllCountdowns();
+      socket.emit('reset', { demo: demoMode });
+      $('#feed').innerHTML=''; $('#mode').style.display='none'; $('#guidance').classList.remove('on');
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches yet.</p>';
+    };
   </script>
 </body>
 </html>

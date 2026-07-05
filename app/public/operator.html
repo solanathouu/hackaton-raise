@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CONDUCTOR · Console opérateur</title>
+  <title>CONDUCTOR · Operator console</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230b0e13'/%3E%3Ccircle cx='50' cy='50' r='22' fill='none' stroke='%234cc2ff' stroke-width='7'/%3E%3Ccircle cx='50' cy='50' r='7' fill='%23ff5449'/%3E%3C/svg%3E" />
   <meta name="theme-color" content="#0b0e13" />
   <style>
@@ -31,14 +31,27 @@
     }
     header h1 { font-size:13px; font-weight:800; letter-spacing:3px; margin:0; }
     header h1 span { color:var(--dim); font-weight:600; letter-spacing:1.5px; }
-    .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; }
-    .dot.on { background:var(--ok); }
+    .dot { width:8px; height:8px; border-radius:50%; background:var(--bad); flex:none; transition:background .25s var(--ease), box-shadow .25s var(--ease); }
+    .dot.on { background:var(--ok); box-shadow:0 0 8px rgba(46,168,98,.45); }
     #clock { font:600 13px var(--mono); color:var(--dim); font-variant-numeric:tabular-nums; }
 
-    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:4px 8px; border-radius:6px; border:1px solid var(--line); }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.4px; padding:5px 9px; border-radius:6px; border:1px solid var(--line); }
     .badge.degraded { background:#33270d; color:var(--warn); border-color:var(--warn); }
     .badge.live { background:#0d2618; color:var(--ok); border-color:#1e5a3a; }
+    .badge.demo {
+      background:linear-gradient(135deg, #1a1533 0%, #251e45 100%);
+      color:#d4c4ff; border-color:#6d28d9; letter-spacing:1.1px;
+      box-shadow:0 0 14px rgba(109,40,217,.22), inset 0 1px 0 rgba(255,255,255,.06);
+    }
     .badge.analysing { background:#0c2030; color:var(--accent); border-color:#1d4a63; animation:pulse 1.1s infinite; }
+    .roster-toggle { display:flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; flex:none; background:var(--panel2); }
+    .roster-toggle button {
+      font:700 10px/1 -apple-system, system-ui, sans-serif; padding:10px 12px; min-height:44px; min-width:44px;
+      border:none; background:transparent; color:var(--dim); letter-spacing:.5px;
+      transition:background .2s var(--ease), color .2s var(--ease);
+    }
+    .roster-toggle button.sel { background:#0c2030; color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+    .roster-toggle button[data-mode="demo"].sel { background:#1a1533; color:#d4c4ff; box-shadow:inset 0 -2px 0 #8b5cf6; }
     @keyframes pulse { 50% { opacity:.45; } }
 
     main { max-width:1280px; margin:0 auto; padding:14px 18px 24px; }
@@ -102,15 +115,20 @@
     #reset { background:#2a1210; border-color:#5c2320; }
     .feed { max-height:180px; overflow:auto; }
     .feed div { font:12px var(--mono); color:var(--dim); padding:4px 0; }
-    .feed:empty::after { content:'Aucune action pour l\'instant.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
-    .empty { color:var(--dim); font-size:13px; }
+    .feed:empty::after { content:'No actions yet.'; color:var(--dim); font-size:13px; font-family:-apple-system, system-ui, sans-serif; }
+    .empty { color:var(--dim); font-size:13px; text-align:center; padding:18px 12px; border:1px dashed var(--line); border-radius:var(--r); }
   </style>
 </head>
 <body>
   <header>
     <span class="dot" id="dot"></span>
     <h1>CONDUCTOR <span>· CONSOLE</span></h1>
+    <span id="demoBadge" class="badge demo" style="display:none">DEMO TEAM</span>
     <span id="mode" class="badge" style="display:none"></span>
+    <div class="roster-toggle" id="rosterToggle">
+      <button type="button" data-mode="real" class="sel">Real</button>
+      <button type="button" data-mode="demo">Demo</button>
+    </div>
     <span style="flex:1"></span>
     <span id="clock"></span>
   </header>
@@ -122,32 +140,33 @@
     <div class="cols">
       <div>
         <div class="card">
-          <h2>Alertes de couverture</h2>
-          <div id="alerts"><p class="empty">Aucune alerte. Tout est couvert.</p></div>
+          <h2>Coverage alerts</h2>
+          <div id="alerts"><p class="empty">No alerts. All zones covered.</p></div>
         </div>
         <div class="card">
           <h2>Incidents</h2>
-          <div id="incidents"><p class="empty">En attente d'un signalement vocal…</p></div>
+          <div id="incidents"><p class="empty">Waiting for a voice report…</p></div>
         </div>
       </div>
 
       <div>
         <div class="card">
-          <h2>Dispatchs</h2>
-          <div id="dispatches"><p class="empty">Aucun dispatch.</p></div>
+          <h2>Dispatches</h2>
+          <div id="dispatches"><p class="empty">No dispatches.</p></div>
         </div>
         <div class="card demo">
-          <h2>Démo</h2>
+          <h2>Demo</h2>
           <div class="row">
-            <button data-tr="malaise au grand huit, une personne au sol" data-l="fr">S1</button>
-            <button data-tr="arrêt cardiaque au manège extrême, il ne respire plus" data-l="fr">S2</button>
-            <button data-tr="malaise à la zone enfants, personne inconsciente" data-l="fr">S3</button>
-            <button data-tr="un hombre se desplomó en la entrada, no respira" data-l="es">S4</button>
+            <button data-tr="medical issue at the roller coaster, someone is on the ground" data-l="en" title="Medical issue Z2">S1 · Z2</button>
+            <button data-tr="cardiac arrest at the extreme ride, he is not breathing" data-l="en" title="Cardiac arrest Z8">S2 · Z8</button>
+            <button data-tr="medical issue at the kids zone, person unconscious" data-l="en" title="Medical issue Z6">S3 · Z6</button>
+            <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en" title="Cardiac arrest Z1 (reserve)">S4 · Z1</button>
+            <button data-tr="a man collapsed at the entrance, he is not breathing" data-l="en" title="Cardiac arrest Z1 (EN)">S5 · EN</button>
             <button id="reset">Reset</button>
           </div>
         </div>
         <div class="card">
-          <h2>Journal opérateur</h2>
+          <h2>Operator log</h2>
           <div class="feed" id="oplog"></div>
         </div>
       </div>
@@ -158,14 +177,45 @@
   <script>
     const socket = io();
     const $ = (s) => document.querySelector(s);
+    // Échappe tout texte externe (transcript STT, justification LLM) avant innerHTML.
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    let demoMode = localStorage.getItem('demoMode') === 'true';
+    let rosterSynced = false;
     let agents = [];               // dernier roster (pour les pickers)
     let alertSeq = 0;
     const density = new Map();     // zoneId -> payload BLE
     const acked = new Set();       // assignmentIds acquittés
 
+    function updateDemoUI() {
+      $('#demoBadge').style.display = demoMode ? '' : 'none';
+      document.querySelectorAll('#rosterToggle button').forEach((b) => {
+        b.classList.toggle('sel', b.dataset.mode === (demoMode ? 'demo' : 'real'));
+      });
+    }
+    function setDemoMode(on) {
+      demoMode = !!on;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
+      socket.emit('reset', { demo: demoMode });
+      clearTimeout(analyseTimer);
+      $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>';
+      $('#alerts').innerHTML = '<p class="empty">No alerts. All zones covered.</p>';
+      $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>';
+      $('#oplog').innerHTML = '';
+      mode.style.display = 'none';
+    }
+    document.querySelectorAll('#rosterToggle button').forEach((b) => {
+      b.onclick = () => {
+        const next = b.dataset.mode === 'demo';
+        if (next === demoMode) return;
+        setDemoMode(next);
+      };
+    });
+    updateDemoUI();
+
     socket.on('connect', () => $('#dot').classList.add('on'));
     socket.on('disconnect', () => $('#dot').classList.remove('on'));
-    setInterval(() => { $('#clock').textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
+    setInterval(() => { $('#clock').textContent = new Date().toLocaleTimeString('en-US'); }, 1000);
 
     const agentLabel = (a) => `${a.id} · ${a.name}${a.is_reserve ? ' (R)' : ''} · ${a.current_zone} [${a.status}]`;
     function agentSelect(filterAvailable) {
@@ -175,6 +225,15 @@
 
     // --- état / zones ---
     socket.on('state', (st) => {
+      if (!rosterSynced && st.demoMode !== demoMode) {
+        rosterSynced = true;
+        socket.emit('reset', { demo: demoMode });
+        return;
+      }
+      rosterSynced = true;
+      demoMode = !!st.demoMode;
+      localStorage.setItem('demoMode', demoMode ? 'true' : 'false');
+      updateDemoUI();
       agents = st.agents;
       $('#zones').innerHTML = st.zones.map((z) => {
         const cls = z.headcount < z.required_min ? 'bad' : z.surplus > 0 ? 'sur' : 'ok';
@@ -191,12 +250,12 @@
     // Indicateur d'attente : Crusoe raisonne (~4-6 s) -> l'attente devient intentionnelle (grand écran).
     let analyseTimer = null;
     function analysing() {
-      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyse le parc…'; mode.style.display = '';
+      mode.className = 'badge analysing'; mode.textContent = 'Crusoe analyzing the park…'; mode.style.display = '';
       clearTimeout(analyseTimer); analyseTimer = setTimeout(() => { mode.style.display = 'none'; }, 20000);
     }
     socket.on('incident', (i) => {
       clearTimeout(analyseTimer);
-      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'MODE DÉGRADÉ'; mode.style.display = ''; }
+      if (i.degraded) { mode.className = 'badge degraded'; mode.textContent = 'DEGRADED MODE'; mode.style.display = ''; }
       else if (i.source?.startsWith('crusoe')) { mode.className = 'badge live'; mode.textContent = i.model ? i.model.split('/').pop().split('-').slice(0, 2).join(' ') : 'Crusoe'; mode.style.display = ''; }
       renderIncident(i);
     });
@@ -207,15 +266,15 @@
       const box = $('#alerts'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div');
       el.className = 'alert'; el.id = id;
-      el.innerHTML = `<div class="m">${w.message}</div>
+      el.innerHTML = `<div class="m">${esc(w.message)}</div>
         <div class="row">
-          <button class="accept" onclick="acceptAlert('${id}','${w.zoneId}')">Accepter</button>
-          <button class="reassign" onclick="toggleReassign('${id}')">Réassigner</button>
+          <button class="accept" onclick="acceptAlert('${id}','${w.zoneId}')">Accept</button>
+          <button class="reassign" onclick="toggleReassign('${id}')">Reassign</button>
         </div>
         <div class="picker" id="pk_${id}" style="display:none">
-          Envoyer ${agentSelect(true)}
-          <input id="rs_${id}" placeholder="raison (optionnel)" style="width:160px" />
-          <button class="reassign" onclick="doReassign('${id}','${w.zoneId}')">Envoyer</button>
+          Send ${agentSelect(true)}
+          <input id="rs_${id}" placeholder="reason (optional)" style="width:160px" />
+          <button class="reassign" onclick="doReassign('${id}','${w.zoneId}')">Send</button>
         </div>`;
       box.prepend(el);
     });
@@ -231,15 +290,15 @@
     function renderIncident(i) {
       const box = $('#incidents'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div'); el.className = 'inc';
-      const sev = i.severity >= 5 ? `<span class="sev5">sévérité ${i.severity}</span>` : `sévérité ${i.severity ?? '?'}`;
-      el.innerHTML = `<div class="h">${i.type || 'incident'} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
-        ${i.justification ? `<div class="j">${i.justification}</div>` : ''}
-        <div class="meta">${i.transcript ? '« ' + i.transcript + ' »' : ''}</div>
+      const sev = i.severity >= 5 ? `<span class="sev5">severity ${i.severity}</span>` : `severity ${i.severity ?? '?'}`;
+      el.innerHTML = `<div class="h">${esc(i.type || 'incident')} · ${i.zone_id} · ${sev} → primary <b>${i.primary_id}</b></div>
+        ${i.justification ? `<div class="j">${esc(i.justification)}</div>` : ''}
+        <div class="meta">${i.transcript ? '« ' + esc(i.transcript) + ' »' : ''}</div>
         <div class="row" style="margin-top:8px">
           <span style="font-size:12px;color:var(--dim)">override →</span>
           ${agentSelect(false)}
-          <input placeholder="raison (ex: protège Marco)" style="width:150px" />
-          <button class="reassign" onclick="overridePrimary(this,'${i.id}')">Réassigner</button>
+          <input placeholder="reason (e.g. protect lead)" style="width:150px" />
+          <button class="reassign" onclick="overridePrimary(this,'${i.id}')">Reassign</button>
         </div>`;
       box.prepend(el);
     }
@@ -253,19 +312,19 @@
       const box = $('#dispatches'); if (box.querySelector('.empty')) box.innerHTML = '';
       const el = document.createElement('div'); el.className = 'disp ' + d.role; el.id = 'ds_' + d.assignmentId;
       if (acked.has(d.assignmentId)) el.classList.add('acked');
-      el.innerHTML = `<span class="tag ${d.role}">${d.role}</span> <b>${d.agentId} → ${d.targetZone}</b> <span style="color:var(--dim)">${d.text || ''}</span>`;
+      el.innerHTML = `<span class="tag ${d.role}">${d.role}</span> <b>${d.agentId} → ${d.targetZone}</b> <span style="color:var(--dim)">${esc(d.text || '')}</span>`;
       box.prepend(el);
     });
     socket.on('ack_log', (a) => { acked.add(a.assignmentId); $('#ds_' + a.assignmentId)?.classList.add('acked'); oplog(`ack ${a.agentId}`); });
 
     // --- journal opérateur ---
-    const oplog = (t) => { const d = document.createElement('div'); d.textContent = `${new Date().toLocaleTimeString('fr-FR')} · ${t}`; $('#oplog').prepend(d); };
+    const oplog = (t) => { const d = document.createElement('div'); d.textContent = `${new Date().toLocaleTimeString('en-US')} · ${t}`; $('#oplog').prepend(d); };
     socket.on('override_log', (o) => oplog(`override → ${o.newAgentId}${o.reason ? ` (${o.reason})` : ''}`));
-    socket.on('operator_log', (o) => oplog(o.action === 'accept' ? `trou accepté (${o.zoneId})` : `renfort ${o.agentId} → ${o.zoneId}${o.reason ? ` (${o.reason})` : ''}`));
+    socket.on('operator_log', (o) => oplog(o.action === 'accept' ? `gap accepted (${o.zoneId})` : `reinforcement ${o.agentId} → ${o.zoneId}${o.reason ? ` (${o.reason})` : ''}`));
 
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach((b) => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); });
-    $('#reset').onclick = () => { socket.emit('reset'); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">En attente d\'un signalement vocal…</p>'; $('#alerts').innerHTML = '<p class="empty">Aucune alerte. Tout est couvert.</p>'; $('#dispatches').innerHTML = '<p class="empty">Aucun dispatch.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
+    $('#reset').onclick = () => { socket.emit('reset', { demo: demoMode }); clearTimeout(analyseTimer); $('#incidents').innerHTML = '<p class="empty">Waiting for a voice report…</p>'; $('#alerts').innerHTML = '<p class="empty">No alerts. All zones covered.</p>'; $('#dispatches').innerHTML = '<p class="empty">No dispatches.</p>'; $('#oplog').innerHTML = ''; mode.style.display = 'none'; };
   </script>
 </body>
 </html>

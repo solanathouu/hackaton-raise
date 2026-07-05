@@ -77,8 +77,8 @@ test('STT réel : HTTP 500 sans whisper -> retombe sur la fixture mock (F9, ne t
   sttBehavior = 'http500';
   const wav = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WAVE'), Buffer.alloc(16)]);
   const out = await transcribe(wav);
-  assert.equal(out.lang, 'fr');
-  assert.match(out.text, /arrêt cardiaque/);
+  assert.equal(out.lang, 'en');
+  assert.match(out.text, /cardiac arrest/i);
   sttBehavior = 'ok';
 });
 

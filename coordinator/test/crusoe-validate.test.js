@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { validateDecision, extractDecisionJson, alignPrimaryToOptimal } from '../src/integrations/crusoe.js';
 
 const SNAPSHOT = {
-  incident: { transcript: 'arrêt cardiaque au manège extrême', lang: 'fr', zone_id: 'Z8' },
-  zones: [{ id: 'Z8', name: 'Manège Extrême', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] }],
+  incident: { transcript: 'cardiac arrest at the extreme ride', lang: 'en', zone_id: 'Z8' },
+  zones: [{ id: 'Z8', name: 'Extreme Ride', headcount: 2, required_min: 2, surplus: 0, required_skills: ['RCP'] }],
   constraints: [],
   candidates_primary: [
     { id: 'A7', name: 'Hugo', skills: ['RCP'], current_zone: 'Z8', travel_time_s: 0, is_reserve: false, safe: true },
@@ -63,6 +63,28 @@ test('validateDecision — rejette backfill hors pool', () => {
 test('extractDecisionJson — parse fence markdown', () => {
   const obj = extractDecisionJson({ content: '```json\n{"primary_id":"A7"}\n```' });
   assert.equal(obj.primary_id, 'A7');
+});
+
+test('extractDecisionJson — fallback reasoning field (Nemotron)', () => {
+  const obj = extractDecisionJson({
+    content: null,
+    reasoning: 'Step 1 done.\n{"primary_id":"A7","zone_id":"Z8"}',
+  });
+  assert.equal(obj.primary_id, 'A7');
+  assert.equal(obj.zone_id, 'Z8');
+});
+
+test('extractDecisionJson — JSON noyé dans du raisonnement', () => {
+  const obj = extractDecisionJson({
+    content: null,
+    reasoning: 'We need to output JSON.\n\n{"incident_type":"arret_cardiaque","primary_id":"A7"}',
+  });
+  assert.equal(obj.incident_type, 'arret_cardiaque');
+  assert.equal(obj.primary_id, 'A7');
+});
+
+test('extractDecisionJson — rejette message vide', () => {
+  assert.throws(() => extractDecisionJson({ content: null, reasoning: null }), /réponse LLM vide/);
 });
 
 test('alignPrimaryToOptimal — choisit le plus proche qualifié', () => {

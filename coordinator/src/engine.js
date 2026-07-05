@@ -241,7 +241,7 @@ function coverageWarning(sim, zoneId) {
   return {
     zoneId,
     etaSec,
-    message: `${z?.name || zoneId} tombera sous le minimum ~${mins} min. Accepter / réassigner ?`,
+    message: `${z?.name || zoneId} will fall below minimum in ~${mins} min. Accept / reassign?`,
   };
 }
 
@@ -319,7 +319,7 @@ export function applyDecision(decision, state, opts = {}) {
   if (!primary) {
     return {
       assignments: [],
-      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `Aucun répondant qualifié disponible pour ${incidentZone}.` }],
+      warnings: [{ zoneId: incidentZone, etaSec: 0, message: `No qualified responder available for ${incidentZone}.` }],
       nextState: state,
       incident: buildIncident(decision, incidentId, null, [], warnings, opts, mergedConstraints),
       repaired: true,
@@ -407,15 +407,15 @@ const norm = (s) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 const ZONE_ALIASES = {
-  Z1: ['entree', 'entrada', 'entrance', 'porte'],
-  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster'],
-  Z3: ['grande roue', 'noria', 'ferris'],
-  Z4: ['riviere', 'river', 'rapids', 'rapide'],
-  Z5: ['place centrale', 'plaza', 'central'],
-  Z6: ['zone enfants', 'enfants', 'ninos', 'kids', 'children'],
+  Z1: ['entree', 'entrada', 'entrance', 'entry', 'porte'],
+  Z2: ['grand huit', 'grand-huit', 'montana rusa', 'roller coaster', 'rollercoaster'],
+  Z3: ['grande roue', 'ferris wheel', 'noria', 'ferris'],
+  Z4: ['riviere sauvage', 'riviere', 'wild river', 'river', 'rapids', 'rapide'],
+  Z5: ['place centrale', 'central plaza', 'plaza', 'central'],
+  Z6: ['zone enfants', 'kids zone', 'enfants', 'ninos', 'kids', 'children'],
   Z7: ['food court', 'restauration', 'comida', 'food'],
-  Z8: ['manege extreme', 'manege', 'extreme'],
-  Z9: ['boutique', 'tienda', 'shop', 'magasin'],
+  Z8: ['manege extreme', 'extreme ride', 'manege', 'extreme'],
+  Z9: ['boutiques', 'boutique', 'tienda', 'shops', 'shop', 'magasin'],
   Z10: ['parking', 'aparcamiento'],
 };
 
@@ -455,7 +455,7 @@ export function deterministicDecide(snapshot, transcript = '') {
     primary_id: primary?.id || null,
     backfills: [], // applyDecision cascade le backfill déterministiquement
     warning: null,
-    justification: 'Dispatch déterministe : plus proche qualifié + backfill surplus-aware (couverture garantie).',
+    justification: 'Deterministic dispatch: closest qualified responder + surplus-aware backfill (coverage guaranteed).',
     constraints_applied: [],
     _degraded: true,
   };

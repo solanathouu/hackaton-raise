@@ -1,12 +1,12 @@
 [
- {"id":"Z1","name":"Entrée","required_min":1,"required_skills":[],"adjacency":[{"z":"Z5","t":60},{"z":"Z10","t":70}]},
- {"id":"Z2","name":"Grand Huit","required_min":2,"required_skills":["RCP"],"adjacency":[{"z":"Z5","t":90},{"z":"Z8","t":60}]},
- {"id":"Z3","name":"Grande Roue","required_min":1,"required_skills":[],"adjacency":[{"z":"Z5","t":75},{"z":"Z4","t":85}]},
- {"id":"Z4","name":"Rivière Sauvage","required_min":1,"required_skills":["RCP"],"adjacency":[{"z":"Z3","t":85},{"z":"Z8","t":70}]},
- {"id":"Z5","name":"Place Centrale","required_min":2,"required_skills":[],"adjacency":[{"z":"Z1","t":60},{"z":"Z2","t":90},{"z":"Z3","t":75},{"z":"Z6","t":80},{"z":"Z7","t":50},{"z":"Z9","t":55}]},
- {"id":"Z6","name":"Zone Enfants","required_min":2,"required_skills":[],"adjacency":[{"z":"Z5","t":80},{"z":"Z7","t":65}]},
- {"id":"Z7","name":"Food Court","required_min":1,"required_skills":[],"adjacency":[{"z":"Z5","t":50},{"z":"Z6","t":65},{"z":"Z9","t":40}]},
- {"id":"Z8","name":"Manège Extrême","required_min":2,"required_skills":["RCP"],"adjacency":[{"z":"Z2","t":60},{"z":"Z4","t":70}]},
- {"id":"Z9","name":"Boutiques","required_min":0,"required_skills":[],"adjacency":[{"z":"Z5","t":55},{"z":"Z7","t":40}]},
- {"id":"Z10","name":"Parking","required_min":0,"required_skills":[],"adjacency":[{"z":"Z1","t":70}]}
+ {"id":"Z1","name":"Entrance","required_min":1,"required_skills":[],"map_x":18,"map_y":28,"lat":48.856952,"lon":2.351435,"adjacency":[{"z":"Z5","t":60},{"z":"Z10","t":70}]},
+ {"id":"Z2","name":"Roller Coaster","required_min":2,"required_skills":["RCP"],"map_x":22,"map_y":72,"lat":48.855845,"lon":2.351588,"adjacency":[{"z":"Z5","t":90},{"z":"Z8","t":60}]},
+ {"id":"Z3","name":"Ferris Wheel","required_min":1,"required_skills":[],"map_x":42,"map_y":58,"lat":48.856198,"lon":2.352353,"adjacency":[{"z":"Z5","t":75},{"z":"Z4","t":85}]},
+ {"id":"Z4","name":"Wild River","required_min":1,"required_skills":["RCP"],"map_x":58,"map_y":78,"lat":48.855695,"lon":2.352965,"adjacency":[{"z":"Z3","t":85},{"z":"Z8","t":70}]},
+ {"id":"Z5","name":"Central Plaza","required_min":2,"required_skills":[],"map_x":38,"map_y":42,"lat":48.8566,"lon":2.3522,"adjacency":[{"z":"Z1","t":60},{"z":"Z2","t":90},{"z":"Z3","t":75},{"z":"Z6","t":80},{"z":"Z7","t":50},{"z":"Z9","t":55}]},
+ {"id":"Z6","name":"Kids Zone","required_min":2,"required_skills":[],"map_x":52,"map_y":32,"lat":48.856852,"lon":2.352735,"adjacency":[{"z":"Z5","t":80},{"z":"Z7","t":65}]},
+ {"id":"Z7","name":"Food Court","required_min":1,"required_skills":[],"map_x":62,"map_y":38,"lat":48.856701,"lon":2.353117,"adjacency":[{"z":"Z5","t":50},{"z":"Z6","t":65},{"z":"Z9","t":40}]},
+ {"id":"Z8","name":"Extreme Ride","required_min":2,"required_skills":["RCP"],"map_x":78,"map_y":68,"lat":48.855946,"lon":2.353729,"adjacency":[{"z":"Z2","t":60},{"z":"Z4","t":70}]},
+ {"id":"Z9","name":"Shops","required_min":0,"required_skills":[],"map_x":72,"map_y":22,"lat":48.857103,"lon":2.3535,"adjacency":[{"z":"Z5","t":55},{"z":"Z7","t":40}]},
+ {"id":"Z10","name":"Parking","required_min":0,"required_skills":[],"map_x":8,"map_y":12,"lat":48.857355,"lon":2.351053,"adjacency":[{"z":"Z1","t":70}]}
 ]

@@ -18,7 +18,11 @@ const LABELS = {
   malaise: { fr: 'Malaise', en: 'Medical issue', es: 'Malestar' },
   incident: { fr: 'Incident', en: 'Incident', es: 'Incidente' },
 };
-const label = (type, lang) => LABELS[type]?.[lang] || LABELS.incident[lang] || type || 'Incident';
+// Le LLM renvoie parfois le type en texte libre (« arrêt cardiaque ») : normalise vers la clé.
+const normalizeType = (type) =>
+  String(type || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s-]+/g, '_');
+const label = (type, lang) =>
+  LABELS[normalizeType(type)]?.[lang] || LABELS.incident[lang] || type || 'Incident';
 
 const TEMPLATES = {
   fr: {
@@ -43,9 +47,9 @@ const TEMPLATES = {
   },
 };
 
-function dispatchText(assignment, incident, state) {
+export function dispatchText(assignment, incident, state) {
   const agent = agentById(state, assignment.agent_id);
-  const lang = agent?.languages?.[0] || 'fr';
+  const lang = incident.language || agent?.languages?.[0] || 'fr';
   const tpl = TEMPLATES[lang] || TEMPLATES.fr;
   const zoneName = zoneById(state, assignment.target_zone)?.name || assignment.target_zone;
   const incidentLabel = label(incident.type, lang);

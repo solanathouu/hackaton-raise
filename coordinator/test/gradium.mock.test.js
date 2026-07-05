@@ -12,24 +12,29 @@ const { transcribe, speak } = await import('../src/integrations/gradium.js');
 const { detectLang } = await import('../src/integrations/lang.js');
 const { sniffFormat, contentTypeFor } = await import('../src/integrations/audio.js');
 
-test('Contrat D mock : transcribe() renvoie la fixture fr du kickoff §4', async () => {
+test('Contrat D mock : transcribe() renvoie la fixture en par défaut', async () => {
   const out = await transcribe('n-importe-quoi-base64');
+  assert.deepEqual(out, { text: 'cardiac arrest at the extreme ride, he is not breathing', lang: 'en' });
+});
+
+test('Contrat D mock : hint fr -> fixture fr (legacy)', async () => {
+  const out = await transcribe('x', { lang: 'fr' });
   assert.deepEqual(out, { text: 'arrêt cardiaque au manège extrême, il ne respire plus', lang: 'fr' });
 });
 
-test('Contrat D mock : hint es -> fixture es (scénario S4)', async () => {
+test('Contrat D mock : hint es -> fixture es (legacy multilingual)', async () => {
   const out = await transcribe('x', { lang: 'es' });
   assert.deepEqual(out, { text: 'un hombre se desplomó en la entrada, no respira', lang: 'es' });
 });
 
 test('Contrat D mock : speak() renvoie la fixture audioUrl', async () => {
-  assert.deepEqual(await speak('Rejoins le Manège Extrême.', 'fr'), { audioUrl: '/mock/tts-sample.mp3' });
+  assert.deepEqual(await speak('Move to Extreme Ride to keep coverage.', 'en'), { audioUrl: '/mock/tts-sample.mp3' });
 });
 
 test('detectLang : fr / es / en sur les phrases des scénarios de démo', () => {
   assert.equal(detectLang('arrêt cardiaque au manège extrême, il ne respire plus'), 'fr');
   assert.equal(detectLang('un hombre se desplomó en la entrada, no respira'), 'es');
-  assert.equal(detectLang('a man collapsed at the entrance, he is not breathing'), 'en');
+  assert.equal(detectLang('cardiac arrest at the extreme ride, he is not breathing'), 'en');
 });
 
 test('detectLang : fallback fr sur vide/inconnu', () => {

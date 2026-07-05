@@ -36,7 +36,7 @@ console.log('\n[2] État de départ : couverture & surplus');
 console.log('\n[3] buildSnapshot(Z8) vs Mock Snapshot kickoff');
 {
   const s = fresh();
-  const snap = buildSnapshot(s, 'Z8', { transcript: 'arrêt cardiaque au manège extrême', lang: 'fr' });
+  const snap = buildSnapshot(s, 'Z8', { transcript: 'cardiac arrest at the extreme ride', lang: 'en' });
   const z8 = snap.zones.find((z) => z.id === 'Z8');
   eq({ h: z8.headcount, m: z8.required_min, su: z8.surplus }, { h: 2, m: 2, su: 0 }, 'zone Z8 snapshot');
   const cp = snap.candidates_primary;
@@ -52,9 +52,11 @@ console.log('\n[3] buildSnapshot(Z8) vs Mock Snapshot kickoff');
 console.log('\n[4] detectZone (déterministe, multilingue)');
 {
   const s = fresh();
-  eq(detectZone('arrêt cardiaque au manège extrême, il ne respire plus', s.zones), 'Z8', 'FR "manège extrême" -> Z8');
+  eq(detectZone('cardiac arrest at the extreme ride, he is not breathing', s.zones), 'Z8', 'EN "extreme ride" -> Z8');
   eq(detectZone('un hombre se desplomó en la entrada, no respira', s.zones), 'Z1', 'ES "entrada" -> Z1');
-  eq(detectZone('malaise au grand huit', s.zones), 'Z2', 'FR "grand huit" -> Z2');
+  eq(detectZone('medical issue at the roller coaster', s.zones), 'Z2', 'EN "roller coaster" -> Z2');
+  eq(detectZone('arrêt cardiaque au manège extrême, il ne respire plus', s.zones), 'Z8', 'FR "manège extrême" -> Z8 (legacy alias)');
+  eq(detectZone('malaise au grand huit', s.zones), 'Z2', 'FR "grand huit" -> Z2 (legacy alias)');
 }
 
 console.log('\n[S1] Ponction de surplus, zéro cascade (incident Z2)');
@@ -100,10 +102,10 @@ console.log('\n[S3] Alerte proactive : surplus épuisé -> aucun backfill sûr -
   ok(r.assignments.some((a) => a.role === 'primary' && a.agent_id === 'A7'), 'Hugo part quand même (urgence)');
   ok(r.assignments.every((a) => a.role !== 'backfill'), 'aucun backfill possible (rien de safe)');
   ok(r.warnings.length >= 1, 'warning proactif émis');
-  ok(/Z8|Manège/.test(r.warnings[0].message), `message warning cohérent : "${r.warnings[0]?.message}"`);
+  ok(/Z8|Extreme Ride/.test(r.warnings[0].message), `message warning cohérent : "${r.warnings[0]?.message}"`);
 }
 
-console.log('\n[S4] Réserviste + multilingue : report ES à l\'Entrée -> Paul (ponction gratuite)');
+console.log('\n[S4] Reserve + entrance report -> Paul (free puncture)');
 {
   const s = fresh();
   const dec = { incident_type: 'arret_cardiaque', zone_id: 'Z1', skills_needed: ['RCP'], severity: 5, primary_id: 'R1', backfills: [], warning: null };
@@ -137,10 +139,10 @@ console.log('\n[F8a] Override appris (protège un agent) : le moteur ne ponction
   ok(r.incident.constraints_applied.includes('protège Marco'), 'incident.constraints_applied renseigné');
 }
 
-console.log('\n[F8b] Contrainte par ZONE : "protège le Grand Huit" protège tous les agents de Z2');
+console.log('\n[F8b] Zone constraint: "protect the Roller Coaster" protects all Z2 agents');
 {
   const s = fresh();
-  s.constraints.push({ id: 'c2', scope: 'zone', rule_text: 'protège le Grand Huit', source_override: 'inc_y' });
+  s.constraints.push({ id: 'c2', scope: 'zone', rule_text: 'protect the Roller Coaster', source_override: 'inc_y' });
   const { protectedSet } = protectedAgentIds(s);
   ok(['A1', 'A2', 'A3'].every((id) => protectedSet.has(id)), 'Marco+Ana+Karim (Z2) protégés');
   const bf = candidatesBackfill(s, 'Z8');

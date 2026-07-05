@@ -91,11 +91,40 @@ export const config = {
   sqlitePath: process.env.SQLITE_PATH
     ? resolve(process.env.SQLITE_PATH)
     : resolve(__dirname, '../data/conductor.sqlite'),
+  gps: {
+    parkLat: process.env.PARK_LAT ? Number(process.env.PARK_LAT) : null,
+    parkLon: process.env.PARK_LON ? Number(process.env.PARK_LON) : null,
+    maxDistanceM: Number(process.env.GPS_MAX_DISTANCE_M || 800),
+    logPath: process.env.POSITION_LOG_PATH || 'logs/positions.jsonl',
+  },
 };
 
-export function loadSeed() {
-  const zones = JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8'));
-  const roster = JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
+/** Centre du seed (Z5 Place Centrale dans data/zones.json). */
+export const SEED_PARK_CENTER = { lat: 48.8566, lon: 2.3522 };
+
+export function anchorZones(zones, parkLat, parkLon) {
+  if (parkLat == null || parkLon == null) return zones.map((z) => ({ ...z }));
+  const dLat = parkLat - SEED_PARK_CENTER.lat;
+  const dLon = parkLon - SEED_PARK_CENTER.lon;
+  return zones.map((z) => ({
+    ...z,
+    lat: z.lat != null ? z.lat + dLat : z.lat,
+    lon: z.lon != null ? z.lon + dLon : z.lon,
+  }));
+}
+
+export function loadDemoRoster() {
+  return JSON.parse(readFileSync(resolve(DATA_DIR, 'roster-demo.json'), 'utf8'));
+}
+
+/** @param {'real'|'demo'} mode */
+export function loadSeed(mode = 'real') {
+  const zones = anchorZones(
+    JSON.parse(readFileSync(resolve(DATA_DIR, 'zones.json'), 'utf8')),
+    config.gps.parkLat,
+    config.gps.parkLon,
+  );
+  const roster = mode === 'demo' ? loadDemoRoster() : JSON.parse(readFileSync(resolve(DATA_DIR, 'roster.json'), 'utf8'));
   return { zones, roster };
 }
 
