@@ -4,8 +4,12 @@
 // -> conversion ffmpeg (spawn, dép. autorisée) quand dispo, sinon envoi direct tenté.
 
 import { spawn } from 'node:child_process';
+import { writeFileSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const FFMPEG_BIN = process.env.FFMPEG_BIN || 'ffmpeg';
+let tmpSeq = 0;
 
 export function sniffFormat(buf) {
   if (!buf || buf.length < 12) return 'unknown';
@@ -35,23 +39,30 @@ export async function hasFfmpeg() {
 // Convertit n'importe quelle entrée en WAV mono 16-bit au sample rate voulu
 // (Gradium PCM = 24kHz ; whisper.cpp = 16kHz).
 export function toWav(inputBuf, sampleRate = 24000) {
+  // iOS Safari produit du MP4 FRAGMENTÉ (fMP4) : ffmpeg doit pouvoir SEEK pour lire les boîtes
+  // moov/tfhd -> le pipe stdin (non-seekable) échoue « no tfhd found » ET, quand ffmpeg ferme
+  // stdin tôt, l'écriture du buffer provoque un `write EPIPE` qui CRASHAIT le serveur.
+  // -> on écrit dans un fichier temp (seekable) et ffmpeg lit le fichier. Plus de stdin, plus d'EPIPE.
+  const tmp = join(tmpdir(), `conductor-${process.pid}-${Date.now()}-${tmpSeq++}.bin`);
+  writeFileSync(tmp, inputBuf);
   return new Promise((resolve, reject) => {
     const p = spawn(FFMPEG_BIN, [
       '-hide_banner', '-loglevel', 'error',
-      '-i', 'pipe:0',
+      '-i', tmp,
       '-ac', '1', '-ar', String(sampleRate), '-sample_fmt', 's16',
       '-f', 'wav', 'pipe:1',
-    ], { stdio: ['pipe', 'pipe', 'pipe'] });
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
     const out = [];
     const err = [];
+    const cleanup = () => { try { unlinkSync(tmp); } catch {} };
     p.stdout.on('data', (c) => out.push(c));
     p.stderr.on('data', (c) => err.push(c));
-    p.on('error', reject);
+    p.on('error', (e) => { cleanup(); reject(e); });
     p.on('exit', (code) => {
+      cleanup();
       if (code === 0) resolve(Buffer.concat(out));
       else reject(new Error(`ffmpeg exit ${code}: ${Buffer.concat(err).toString().slice(0, 200)}`));
     });
-    p.stdin.end(inputBuf);
   });
 }
 

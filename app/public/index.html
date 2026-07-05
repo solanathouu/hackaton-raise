@@ -197,9 +197,9 @@
     <section class="view on" id="view-radio">
       <div class="ptt-stage">
         <div class="ptt-shell">
-          <button class="ptt" id="ptt"><span class="k">SPEAK</span><span class="s">hold</span></button>
+          <button class="ptt" id="ptt"><span class="k">TAP</span><span class="s">to talk</span></button>
         </div>
-        <p class="ptt-hint" id="ptthint">Describe the emergency. The dispatch comes back here, on the right phone.</p>
+        <p class="ptt-hint" id="ptthint">Tap to talk · speak the emergency · tap again to send.</p>
       </div>
       <div id="dispatches"><p class="empty">No dispatch yet.</p></div>
     </section>
@@ -423,46 +423,40 @@
     socket.on('coverage_warning', (w) => feed(`⚠ ${w.message}`, 'warn'));
     socket.on('ack_log', (a) => feed(`✅ ${a.agentId} acknowledged ${a.assignmentId}`));
     socket.on('override_log', (o) => feed(`✋ override → ${o.newAgentId}${o.reason?` (${o.reason})`:''}`));
-    socket.on('error_msg', (m) => { mode.style.display = 'none'; const msg = m.message || 'Didn\'t catch that — please repeat.'; setHint('⚠️ ' + msg, 'warn'); feed('🎙️ ' + msg, 'warn'); pttLabel('SPEAK', 'hold'); });
+    socket.on('error_msg', (m) => { mode.style.display = 'none'; const msg = m.message || 'Didn\'t catch that — please repeat.'; setHint('⚠️ ' + msg, 'warn'); feed('🎙️ ' + msg, 'warn'); pttLabel('TAP', 'to talk'); });
 
     // --- PTT micro ---
-    let rec, chunks = [], recStart = 0;
+    let rec, chunks = [], recording = false;
     const pttLabel = (k, s) => { $('#ptt').innerHTML = `<span class="k">${k}</span><span class="s">${s}</span>`; };
     const setHint = (t, cls = '') => { const h = $('#ptthint'); if (h) { h.textContent = t; h.className = 'ptt-hint' + (cls ? ' ' + cls : ''); } };
     // base64 par blocs : évite un RangeError sur les longs enregistrements (spread d'un gros Uint8Array).
     const toB64 = (buf) => { const b = new Uint8Array(buf); let s = ''; const CH = 0x8000; for (let i = 0; i < b.length; i += CH) s += String.fromCharCode.apply(null, b.subarray(i, i + CH)); return btoa(s); };
-    const MIN_MS = 1500; // capture minimale (Gradium a besoin d'≥ ~1 s ; contre les 0,5 s tronqués iOS)
+    // TAP-TO-TALK : 1 tap = démarre, 2e tap = envoie (le maintien tactile iOS est trop peu fiable).
     async function startRec() {
+      recording = true; $('#ptt').classList.add('rec'); pttLabel('🔴 REC', 'tap to send'); setHint('🔴 Recording — speak, then tap to send', 'live');
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!recording) { stream.getTracks().forEach(t => t.stop()); return; } // annulé pendant l'attente micro
         rec = new MediaRecorder(stream); chunks = [];
         rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
         rec.onstop = async () => {
           const blob = new Blob(chunks, { type: 'audio/webm' });
           stream.getTracks().forEach(t => t.stop());
-          if (blob.size < 8000) { setHint('⚠️ Too short — hold & speak ~2s', 'warn'); pttLabel('SPEAK', 'hold'); return; }
+          if (blob.size < 8000) { setHint('⚠️ Too short — tap, speak ~2s, tap again', 'warn'); pttLabel('TAP', 'to talk'); return; }
           try {
-            const b64 = toB64(await blob.arrayBuffer());
-            socket.emit('incident_audio', { agentId: me, audio: b64, ts: Date.now(), lang });
+            socket.emit('incident_audio', { agentId: me, audio: toB64(await blob.arrayBuffer()), ts: Date.now(), lang });
             setHint('⏳ Sent — Crusoe is analyzing…', 'live'); analysing();
-          } catch (err) { setHint('⚠️ Send failed — try again', 'warn'); pttLabel('SPEAK', 'hold'); }
+          } catch (err) { setHint('⚠️ Send failed — try again', 'warn'); pttLabel('TAP', 'to talk'); }
         };
-        recStart = Date.now();
-        rec.start(250); $('#ptt').classList.add('rec'); pttLabel('YOUR TURN', 'release');
-        setHint('🔴 Recording — keep talking…', 'live');
-      } catch (e) { alert('Mic blocked: ' + e.message + '\nEnable HTTPS (npm run certs) or use the demo buttons (MORE tab).'); }
+        rec.start(250);
+      } catch (e) { recording = false; $('#ptt').classList.remove('rec'); pttLabel('TAP', 'to talk'); setHint('Tap to talk · speak · tap to send'); alert('Mic blocked: ' + e.message + '\nEnable HTTPS (npm run certs) or use the demo buttons (MORE tab).'); }
     }
     function stopRec() {
-      if (!rec || rec.state === 'inactive') return;
-      const finish = () => { if (rec && rec.state !== 'inactive') rec.stop(); $('#ptt').classList.remove('rec'); pttLabel('SPEAK', 'hold'); };
-      const left = MIN_MS - (Date.now() - recStart);
-      if (left > 0) { setHint('🔴 Keep talking…', 'live'); setTimeout(finish, left); } // force ≥1,5 s même si relâché tôt
-      else finish();
+      recording = false; $('#ptt').classList.remove('rec'); pttLabel('TAP', 'to talk');
+      if (rec && rec.state !== 'inactive') rec.stop();
     }
     const ptt = $('#ptt');
-    ptt.addEventListener('mousedown', startRec); ptt.addEventListener('mouseup', stopRec);
-    ptt.addEventListener('touchstart', (e)=>{e.preventDefault();startRec();}); ptt.addEventListener('touchend', (e)=>{e.preventDefault();stopRec();});
-    ptt.addEventListener('touchcancel', (e)=>{e.preventDefault();stopRec();}); // iOS annule parfois le touch -> on ferme proprement
+    ptt.addEventListener('click', (e) => { e.preventDefault(); recording ? stopRec() : startRec(); });
 
     // --- démo ---
     document.querySelectorAll('.demo button[data-tr]').forEach(b => b.onclick = () => { socket.emit('sim_incident', { transcript: b.dataset.tr, lang: b.dataset.l }); analysing(); switchView('radio'); });

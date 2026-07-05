@@ -346,7 +346,7 @@ io.on('connection', (socket) => {
     catch (e) {
       console.error('[incident_audio] erreur', e);
       const empty = /STT vide|transcription vide/i.test(String(e.message));
-      socket.emit('error_msg', { message: empty ? "Didn't catch that — hold the button and speak clearly for ~2 seconds." : 'Incident processing failed', detail: String(e.message) });
+      socket.emit('error_msg', { message: empty ? "Didn't catch that — tap, speak ~2s, then tap again." : 'Incident processing failed', detail: String(e.message) });
     }
   });
 
@@ -376,6 +376,11 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => { /* on garde l'agent dans l'état + ses dispatchs en attente (replay au retour) */ });
 });
+
+// Filet anti-crash démo : un appel foireux (audio corrompu, ffmpeg, etc.) ne doit JAMAIS tuer
+// le serveur et laisser tous les téléphones tourner à l'infini. On log et on continue.
+process.on('uncaughtException', (e) => console.error('[uncaughtException]', e?.stack || e?.message || e));
+process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', e?.stack || e?.message || e));
 
 // --- Boot ------------------------------------------------------------------
 assertCrusoeLiveWorkflowOrExit();
