@@ -10,10 +10,12 @@ export function isReachable(agent, now = Date.now()) {
 }
 
 // Horloge SERVEUR, jamais le ts client (dérive d'horloge des téléphones).
+// Batterie bornée 0-100 : un client buggé n'affiche jamais « 99999% » sur la console.
 export function markHeartbeat(state, agentId, { battery = null } = {}) {
   const a = state.agents.find((x) => x.id === agentId);
   if (!a) return null;
   a.last_heartbeat = Date.now();
-  if (battery != null && Number.isFinite(Number(battery))) a.battery = Math.round(Number(battery));
+  const b = Number(battery);
+  if (battery != null && Number.isFinite(b)) a.battery = Math.min(100, Math.max(0, Math.round(b)));
   return a;
 }

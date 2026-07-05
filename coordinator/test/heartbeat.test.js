@@ -1,6 +1,8 @@
 // Presence heartbeat — sans réseau : joignabilité des pools de candidats (additif).
-// Règle : heartbeat < 30 s -> joignable ; silencieux > 30 s -> exclu primary/backfill ;
-// AUCUN heartbeat (agent simulé, ancien client) -> joignable par défaut (démo intacte).
+// Règle : heartbeat < TTL (30 s défaut, HEARTBEAT_TTL_MS) -> joignable ; silencieux
+// au-delà -> exclu primary/backfill ; AUCUN heartbeat (agent simulé, ancien client)
+// -> joignable par défaut (démo intacte). Offsets relatifs à REACHABLE_MS : les tests
+// restent verts même si quelqu'un surcharge le TTL dans .env.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -12,33 +14,40 @@ const { isReachable, markHeartbeat, REACHABLE_MS } = await import('../src/presen
 const { candidatesPrimary, candidatesBackfill, buildSnapshot } = await import('../src/engine.js');
 
 const fresh = () => buildState(loadSeed());
+const STALE = REACHABLE_MS + 10000;  // « silencieux » : TTL + 10 s
+const RECENT = Math.floor(REACHABLE_MS / 2);
 
 test('isReachable : sans heartbeat -> joignable par défaut (rétrocompatible)', () => {
   assert.equal(isReachable({ id: 'A1' }), true);
+  assert.equal(isReachable(undefined), true); // même un agent absent ne jette pas
 });
 
-test('isReachable : heartbeat récent -> oui ; silencieux 40 s -> non', () => {
+test('isReachable : heartbeat récent -> oui ; silencieux au-delà du TTL -> non', () => {
   const now = Date.now();
-  assert.equal(isReachable({ last_heartbeat: now - 5000 }, now), true);
-  assert.equal(isReachable({ last_heartbeat: now - 40000 }, now), false);
-  assert.equal(REACHABLE_MS, 30000);
+  assert.ok(REACHABLE_MS > 0, 'TTL positif');
+  assert.equal(isReachable({ last_heartbeat: now - RECENT }, now), true);
+  assert.equal(isReachable({ last_heartbeat: now - STALE }, now), false);
 });
 
-test('markHeartbeat : pose last_heartbeat (horloge serveur) + batterie arrondie', () => {
+test('markHeartbeat : pose last_heartbeat (horloge serveur) + batterie arrondie et bornée 0-100', () => {
   const s = fresh();
   const before = Date.now();
   const a = markHeartbeat(s, 'A1', { battery: 87.6 });
   assert.ok(a.last_heartbeat >= before);
   assert.equal(a.battery, 88);
-  assert.equal(markHeartbeat(s, 'ZZZ'), null); // agent inconnu -> no-op
+  assert.equal(markHeartbeat(s, 'A1', { battery: 1e9 }).battery, 100);  // clamp haut
+  assert.equal(markHeartbeat(s, 'A1', { battery: -5 }).battery, 0);     // clamp bas
+  markHeartbeat(s, 'A1', { battery: 'abc' });                           // non numérique -> ignorée
+  assert.equal(s.agents.find((x) => x.id === 'A1').battery, 0);         // dernière valeur valide conservée
+  assert.equal(markHeartbeat(s, 'ZZZ'), null);                          // agent inconnu -> no-op
 });
 
-test('candidatesPrimary : silencieux 40 s -> exclu du pool, réintégré au heartbeat suivant', () => {
+test('candidatesPrimary : silencieux -> exclu du pool, réintégré au heartbeat suivant', () => {
   const s = fresh();
   const before = candidatesPrimary(s, 'Z8', ['RCP']);
   assert.ok(before.length >= 2, 'pool primary non vide sur le seed');
   const top = before[0]; // A7 (Hugo) sur le seed
-  s.agents.find((x) => x.id === top.id).last_heartbeat = Date.now() - 40000;
+  s.agents.find((x) => x.id === top.id).last_heartbeat = Date.now() - STALE;
   const after = candidatesPrimary(s, 'Z8', ['RCP']);
   assert.ok(!after.some((c) => c.id === top.id), `${top.id} silencieux doit sortir du pool`);
   markHeartbeat(s, top.id, { battery: 61 });
@@ -46,12 +55,12 @@ test('candidatesPrimary : silencieux 40 s -> exclu du pool, réintégré au hear
   assert.ok(again.some((c) => c.id === top.id), `${top.id} revient après un heartbeat`);
 });
 
-test('candidatesBackfill : silencieux 40 s -> exclu du pool backfill', () => {
+test('candidatesBackfill : silencieux -> exclu du pool backfill', () => {
   const s = fresh();
   const before = candidatesBackfill(s, 'Z8');
   assert.ok(before.length >= 1, 'pool backfill non vide sur le seed');
   const top = before[0]; // A1 (Marco) sur le seed
-  s.agents.find((x) => x.id === top.id).last_heartbeat = Date.now() - 40000;
+  s.agents.find((x) => x.id === top.id).last_heartbeat = Date.now() - STALE;
   const after = candidatesBackfill(s, 'Z8');
   assert.ok(!after.some((c) => c.id === top.id), `${top.id} silencieux doit sortir du backfill`);
 });

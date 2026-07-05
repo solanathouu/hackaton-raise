@@ -294,8 +294,9 @@ io.on('connection', (socket) => {
   // Preuve de vie (additif, hors Contrat A) : les téléphones émettent toutes les 10 s.
   // Met à jour last_heartbeat/battery ; la position reste pilotée par l'event `position`.
   // Broadcast throttlé : les indicateurs console n'ont pas besoin du temps réel strict.
-  socket.on('heartbeat', ({ agentId, battery }) => {
-    if (!markHeartbeat(state, agentId, { battery })) return;
+  socket.on('heartbeat', (p) => {
+    if (!p?.agentId) return; // payload malformé = no-op (un client buggé ne tue pas le coordinateur)
+    if (!markHeartbeat(state, p.agentId, { battery: p.battery })) return;
     const now = Date.now();
     if (now - lastPresenceBroadcast > 5000) { lastPresenceBroadcast = now; broadcastState(); }
   });

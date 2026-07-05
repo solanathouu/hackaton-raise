@@ -163,6 +163,27 @@ console.log('\n[Reconnect] dispatch non acquitté REJOUÉ au retour réseau');
   ag2.close();
 }
 
+// --- Heartbeat : preuve de vie enregistrée + payloads malformés inoffensifs ---
+console.log('\n[Heartbeat] présence live dans le state + robustesse payloads hostiles');
+{
+  op.emit('reset'); await sleep(150); clear();
+  const ph = newSocket(); await onceConnected(ph);
+  ph.emit('hello', { agentId: 'A5' });
+  ph.emit('heartbeat', { agentId: 'A5', zoneId: 'Z6', battery: 66, ts: Date.now() });
+  const seen = await waitFor(() => lastState()?.agents?.find((a) => a.id === 'A5')?.battery === 66, 3000);
+  ok(seen, 'state broadcast porte last_heartbeat + battery 66% pour A5');
+  const a1 = lastState()?.agents?.find((a) => a.id === 'A1');
+  ok(a1 && !('last_heartbeat' in a1), 'A1 sans heartbeat -> champs absents (rétrocompatible)');
+  // payloads hostiles : aucun ne doit tuer le coordinateur
+  ph.emit('heartbeat');                                    // undefined
+  ph.emit('heartbeat', { battery: 50 });                   // sans agentId
+  ph.emit('heartbeat', { agentId: 'ZZZ', battery: 1e9 });  // agent inconnu + batterie absurde
+  await sleep(300);
+  const alive = await fetch(`${URL}/health`).then((r) => r.ok).catch(() => false);
+  ok(alive, 'serveur vivant après 3 heartbeats malformés');
+  ph.close();
+}
+
 console.log(`\n===== E2E ${pass} OK / ${fail} KO =====\n`);
 op.close();
 process.exit(fail === 0 ? 0 : 1);
